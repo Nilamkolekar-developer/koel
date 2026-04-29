@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.autopeepal"
+    namespace = "com.example.koel"
     compileSdk = 36
 
     compileOptions {
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.autopeepal"
+        applicationId = "com.example.koel"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = 1

@@ -1,3 +1,5 @@
+import 'package:autopeepal/views/screens/myEsn/flashECUScreen.dart';
+
 class Routes {
   static const splashScreen = '/splashScreen';
   static const dashboardScreen = '/dashboardScreen';
@@ -31,4 +33,7 @@ class Routes {
   static const esnScreen = '/esnScreen';
   static const addServiceForm = '/addServiceForm';
   static const openServiceRequest = '/openServiceRequest';
+  static const closeServiceRequest = '/closeServiceRequest';
+  static const srnpage = '/srnpage';
+  static const flashEcuPage = '/flashEcuPage';
 }

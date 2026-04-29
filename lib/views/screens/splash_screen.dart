@@ -11,7 +11,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryColor,
+      backgroundColor: AppColors.themeColor,
       body: Center(
         child: Image.asset(
           'assets/new/autopeepal.png', // your image path
