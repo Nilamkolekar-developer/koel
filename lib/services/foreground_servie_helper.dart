@@ -1,5 +1,4 @@
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:flutter_foreground_task/task_handler.dart';
 
 class MyTaskHandler extends TaskHandler {
   // Called when the task is started.
