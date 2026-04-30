@@ -755,7 +755,236 @@ class Results {
     };
   }
 }
+class PidResult {
+  int? id;
+  String? code;
+  String? description;
+  List<PidFrameDataset>? frameDatasets;
 
+  PidResult({
+    this.id,
+    this.code,
+    this.description,
+    this.frameDatasets,
+  });
+
+  // Factory constructor to create an instance from a Map (JSON)
+  factory PidResult.fromJson(Map<String, dynamic> json) {
+    return PidResult(
+      id: json['id'] as int?,
+      code: json['code'] as String?,
+      description: json['description'] as String?,
+      // Mapping the nested list of PIDFrameDataset objects
+      frameDatasets: json['frame_datasets'] != null
+          ? (json['frame_datasets'] as List)
+              .map((i) => PidFrameDataset.fromJson(i))
+              .toList()
+          : null,
+    );
+  }
+
+  // Method to convert the instance back to a Map (JSON)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'code': code,
+      'description': description,
+      // Mapping the list back to JSON format
+      'frame_datasets': frameDatasets?.map((i) => i.toJson()).toList(),
+    };
+  }
+}
+
+class PidFrameDataset {
+  int? id;
+  String? frameName;
+  String? frameId;
+  List<PidFrameId>? frameIds;
+
+  PidFrameDataset({
+    this.id,
+    this.frameName,
+    this.frameId,
+    this.frameIds,
+  });
+
+  // Factory constructor to create an instance from a Map (JSON)
+  factory PidFrameDataset.fromJson(Map<String, dynamic> json) {
+    return PidFrameDataset(
+      id: json['id'] as int?,
+      frameName: json['frame_name'] as String?,
+      frameId: json['frame_id'] as String?,
+      // Mapping the nested list of PIDFrameId objects
+      frameIds: json['frame_ids'] != null
+          ? (json['frame_ids'] as List)
+              .map((i) => PidFrameId.fromJson(i))
+              .toList()
+          : null,
+    );
+  }
+
+  // Method to convert the instance back to a Map (JSON)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'frame_name': frameName,
+      'frame_id': frameId,
+      // Mapping the list back to JSON format
+      'frame_ids': frameIds?.map((i) => i.toJson()).toList(),
+    };
+  }
+}
+
+class PidModel {
+  int? count;
+  dynamic next;
+  dynamic previous;
+  List<PidResult>? results;
+
+  PidModel({
+    this.count,
+    this.next,
+    this.previous,
+    this.results,
+  });
+
+  // Factory constructor to create an instance from a Map (JSON)
+  factory PidModel.fromJson(Map<String, dynamic> json) {
+    return PidModel(
+      count: json['count'] as int?,
+      next: json['next'],
+      previous: json['previous'],
+      // Mapping the nested list of PIDResult objects
+      results: json['results'] != null
+          ? (json['results'] as List)
+              .map((i) => PidResult.fromJson(i))
+              .toList()
+          : null,
+    );
+  }
+
+  // Method to convert the instance back to a Map (JSON)
+  Map<String, dynamic> toJson() {
+    return {
+      'count': count,
+      'next': next,
+      'previous': previous,
+      'results': results?.map((i) => i.toJson()).toList(),
+    };
+  }
+}
+
+class ReadParameterPid {
+  String? pid;
+  int? totalLen;
+  int? totalBytes;
+  int? startByte;
+  int? noOfBytes;
+  bool? isBitcoded;
+  int? startBit;
+  int? noofBits;
+  String? datatype;
+  double? resolution;
+  double? offset;
+  String? unit;
+  int? pidNumber;
+  String? pidName;
+  String? showResolution;
+  List<SelectedParameterMessage>? messages;
+
+  ReadParameterPid({
+    this.pid,
+    this.totalLen,
+    this.totalBytes,
+    this.startByte,
+    this.noOfBytes,
+    this.isBitcoded,
+    this.startBit,
+    this.noofBits,
+    this.datatype,
+    this.resolution,
+    this.offset,
+    this.unit,
+    this.pidNumber,
+    this.pidName,
+    this.showResolution,
+    this.messages,
+  });
+
+  // JSON -> Object
+  factory ReadParameterPid.fromJson(Map<String, dynamic> json) {
+    return ReadParameterPid(
+      pid: json['pid'],
+      totalLen: json['totalLen'],
+      totalBytes: json['totalBytes'],
+      startByte: json['startByte'],
+      noOfBytes: json['noOfBytes'],
+      isBitcoded: json['IsBitcoded'],
+      startBit: json['startBit'],
+      noofBits: json['noofBits'],
+      datatype: json['datatype'],
+      resolution: (json['resolution'] as num?)?.toDouble(),
+      offset: (json['offset'] as num?)?.toDouble(),
+      unit: json['unit'],
+      pidNumber: json['pidNumber'],
+      pidName: json['pidName'],
+      showResolution: json['show_resolution'],
+      messages: json['messages'] != null
+          ? (json['messages'] as List)
+              .map((i) => SelectedParameterMessage.fromJson(i))
+              .toList()
+          : null,
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'pid': pid,
+      'totalLen': totalLen,
+      'totalBytes': totalBytes,
+      'startByte': startByte,
+      'noOfBytes': noOfBytes,
+      'IsBitcoded': isBitcoded,
+      'startBit': startBit,
+      'noofBits': noofBits,
+      'datatype': datatype,
+      'resolution': resolution,
+      'offset': offset,
+      'unit': unit,
+      'pidNumber': pidNumber,
+      'pidName': pidName,
+      'show_resolution': showResolution,
+      'messages': messages?.map((v) => v.toJson()).toList(),
+    };
+  }
+}
+
+class SelectedParameterMessage {
+  String? code;
+  String? message;
+
+  SelectedParameterMessage({
+    this.code,
+    this.message,
+  });
+
+  // JSON -> Object
+  factory SelectedParameterMessage.fromJson(Map<String, dynamic> json) {
+    return SelectedParameterMessage(
+      code: json['code'],
+      message: json['message'],
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'message': message,
+    };
+  }
+}
 
 
 class PidGroupModel {
@@ -1034,6 +1263,120 @@ class ReadPidPresponseModel {
       'responseValue': responseValue,
       'unit': unit,
       'Variables': variables.map((v) => v.toJson()).toList(),
+    };
+  }
+}
+
+
+class IvnSelectedPid {
+  String? frameId;
+  List<PidFrameId>? frameIds;
+
+  IvnSelectedPid({
+    this.frameId,
+    this.frameIds,
+  });
+
+  // JSON -> Object
+  factory IvnSelectedPid.fromJson(Map<String, dynamic> json) {
+    return IvnSelectedPid(
+      frameId: json['frame_id'],
+      frameIds: json['frame_ids'] != null
+          ? (json['frame_ids'] as List)
+              .map((i) => PidFrameId.fromJson(i))
+              .toList()
+          : null,
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'frame_id': frameId,
+      'frame_ids': frameIds?.map((v) => v.toJson()).toList(),
+    };
+  }
+}
+
+
+class PidFrameId {
+  String? pidDescription;
+  String? startByte;
+  String? byteValue; // Mapped from @byte
+  String? bitCoded;
+  String? startBit;
+  String? noOfBits;
+  String? resolution;
+  String? offset;
+  String? unit;
+  dynamic messageType; // Using dynamic for object
+  List<FrameOfPidMessage>? frameOfPidMessage;
+  bool selected;
+  String? framId;
+  String? endian;
+  String? numType;
+
+  PidFrameId({
+    this.pidDescription,
+    this.startByte,
+    this.byteValue,
+    this.bitCoded,
+    this.startBit,
+    this.noOfBits,
+    this.resolution,
+    this.offset,
+    this.unit,
+    this.messageType,
+    this.frameOfPidMessage,
+    this.selected = false,
+    this.framId,
+    this.endian,
+    this.numType,
+  });
+
+  // JSON -> Object
+  factory PidFrameId.fromJson(Map<String, dynamic> json) {
+    return PidFrameId(
+      pidDescription: json['pid_description'],
+      startByte: json['start_byte'],
+      byteValue: json['byte'], // Handling the @byte reserved keyword
+      bitCoded: json['bit_coded'],
+      startBit: json['start_bit'],
+      noOfBits: json['no_of_bits'],
+      resolution: json['resolution'],
+      offset: json['offset'],
+      unit: json['unit'],
+      messageType: json['message_type'],
+      frameOfPidMessage: json['frame_of_pid_message'] != null
+          ? (json['frame_of_pid_message'] as List)
+              .map((i) => FrameOfPidMessage.fromJson(i))
+              .toList()
+          : null,
+      selected: json['Selected'] ?? false,
+      framId: json['FramID'],
+      endian: json['endian'],
+      numType: json['num_type'],
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'pid_description': pidDescription,
+      'start_byte': startByte,
+      'byte': byteValue,
+      'bit_coded': bitCoded,
+      'start_bit': startBit,
+      'no_of_bits': noOfBits,
+      'resolution': resolution,
+      'offset': offset,
+      'unit': unit,
+      'message_type': messageType,
+      'frame_of_pid_message': frameOfPidMessage?.map((v) => v.toJson()).toList(),
+      'Selected': selected,
+      'FramID': framId,
+      'endian': endian,
+      'num_type': numType,
     };
   }
 }

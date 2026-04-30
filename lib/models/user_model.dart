@@ -71,10 +71,10 @@ class LoginRespons {
 
   factory LoginRespons.fromJson(Map<String, dynamic> json) {
     return LoginRespons(
-      loginRes:
-          json['login'] != null ? LoginRes.fromJson(json['login']) : null,
-      userRes:
-          json['userRes'] != null ? UserResModel.fromJson(json['userRes']) : null,
+      loginRes: json['login'] != null ? LoginRes.fromJson(json['login']) : null,
+      userRes: json['userRes'] != null
+          ? UserResModel.fromJson(json['userRes'])
+          : null,
     );
   }
 
@@ -192,8 +192,7 @@ class UserResModel {
           json['licences'] != null ? Licences.fromJson(json['licences']) : null,
       lastName: json['last_name'],
       role: json['role'],
-      expires:
-          json['expires'] != null ? DateTime.parse(json['expires']) : null,
+      expires: json['expires'] != null ? DateTime.parse(json['expires']) : null,
       token: json['token'] != null ? Token.fromJson(json['token']) : null,
       user: json['user'],
       firstName: json['first_name'],
@@ -219,6 +218,7 @@ class UserResModel {
     };
   }
 }
+
 class Profile {
   int? id;
   Oem1? oem;
@@ -291,6 +291,7 @@ class Profile {
     };
   }
 }
+
 class Oem1 {
   int? id;
   DateTime? created;
@@ -323,12 +324,9 @@ class Oem1 {
   factory Oem1.fromJson(Map<String, dynamic> json) {
     return Oem1(
       id: json['id'],
-      created: json['created'] != null
-          ? DateTime.parse(json['created'])
-          : null,
-      modified: json['modified'] != null
-          ? DateTime.parse(json['modified'])
-          : null,
+      created: json['created'] != null ? DateTime.parse(json['created']) : null,
+      modified:
+          json['modified'] != null ? DateTime.parse(json['modified']) : null,
       name: json['name'],
       slug: json['slug'],
       createdBy: json['created_by'],
@@ -359,6 +357,33 @@ class Oem1 {
     };
   }
 }
+
+class InvantabUserModel {
+  String? username;
+  String? password;
+
+  InvantabUserModel({
+    this.username,
+    this.password,
+  });
+
+  // FROM JSON
+  factory InvantabUserModel.fromJson(Map<String, dynamic> json) {
+    return InvantabUserModel(
+      username: json['username'],
+      password: json['password'],
+    );
+  }
+
+  // TO JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'username': username,
+      'password': password,
+    };
+  }
+}
+
 class Token {
   String? refresh;
   String? access;
@@ -377,6 +402,329 @@ class Token {
     return {
       'refresh': refresh,
       'access': access,
+    };
+  }
+}
+
+class InvantabUserResModel {
+  bool? success;
+  InvantabData? data;
+  String? message;
+  String? status;
+
+  InvantabUserResModel({
+    this.success,
+    this.data,
+    this.message,
+    this.status,
+  });
+
+  // JSON -> Object
+  factory InvantabUserResModel.fromJson(Map<String, dynamic> json) {
+    return InvantabUserResModel(
+      success: json['success'],
+      data: json['data'] != null ? InvantabData.fromJson(json['data']) : null,
+      message: json['message'],
+      status: json['status'],
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'data': data?.toJson(),
+      'message': message,
+      'status': status,
+    };
+  }
+}
+
+class InvantabData {
+  String? firstName;
+  String? lastName;
+  String? userId;
+  String? mobile;
+  String? email;
+  List<Marketplace>? marketplace;
+  Org? org;
+  List<dynamic>? dept;
+  List<dynamic>? subscription;
+  bool? online;
+  bool? active;
+  AuthToken? authToken;
+
+  InvantabData({
+    this.firstName,
+    this.lastName,
+    this.userId,
+    this.mobile,
+    this.email,
+    this.marketplace,
+    this.org,
+    this.dept,
+    this.subscription,
+    this.online,
+    this.active,
+    this.authToken,
+  });
+
+  factory InvantabData.fromJson(Map<String, dynamic> json) {
+    return InvantabData(
+      firstName: json['first_name'],
+      lastName: json['last_name'],
+      userId: json['user_id'],
+      mobile: json['mobile'],
+      email: json['email'],
+      marketplace: json['marketplace'] != null
+          ? (json['marketplace'] as List)
+              .map((i) => Marketplace.fromJson(i))
+              .toList()
+          : null,
+      org: json['org'] != null ? Org.fromJson(json['org']) : null,
+      dept: json['dept'], // List<dynamic>
+      subscription: json['subscription'], // List<dynamic>
+      online: json['online'],
+      active: json['active'],
+      authToken: json['auth_token'] != null
+          ? AuthToken.fromJson(json['auth_token'])
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'first_name': firstName,
+      'last_name': lastName,
+      'user_id': userId,
+      'mobile': mobile,
+      'email': email,
+      'marketplace': marketplace?.map((i) => i.toJson()).toList(),
+      'org': org?.toJson(),
+      'dept': dept,
+      'subscription': subscription,
+      'online': online,
+      'active': active,
+      'auth_token': authToken?.toJson(),
+    };
+  }
+}
+
+class Marketplace {
+  String? id;
+  String? marketplaceName;
+  String? color;
+  dynamic logo;
+  String? org;
+
+  Marketplace({
+    this.id,
+    this.marketplaceName,
+    this.color,
+    this.logo,
+    this.org,
+  });
+
+  // FROM JSON
+  factory Marketplace.fromJson(Map<String, dynamic> json) {
+    return Marketplace(
+      id: json['id'],
+      marketplaceName: json['marketplace_name'],
+      color: json['color'],
+      logo: json['logo'],
+      org: json['org'],
+    );
+  }
+
+  // TO JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'marketplace_name': marketplaceName,
+      'color': color,
+      'logo': logo,
+      'org': org,
+    };
+  }
+}
+
+class Org {
+  String? id;
+  List<dynamic>? banks;
+  Country? country;
+  DateTime? created;
+  DateTime? modified;
+  String? orgCode;
+  String? companyType;
+  String? companyName;
+  String? logo;
+  String? address;
+  String? panNo;
+  dynamic panCert;
+  String? pincode;
+  dynamic contactPerson;
+  int? paymentTerm;
+  String? marketplace;
+  List<dynamic>? metaTags;
+  List<String>? role;
+
+  Org({
+    this.id,
+    this.banks,
+    this.country,
+    this.created,
+    this.modified,
+    this.orgCode,
+    this.companyType,
+    this.companyName,
+    this.logo,
+    this.address,
+    this.panNo,
+    this.panCert,
+    this.pincode,
+    this.contactPerson,
+    this.paymentTerm,
+    this.marketplace,
+    this.metaTags,
+    this.role,
+  });
+
+  // FROM JSON
+  factory Org.fromJson(Map<String, dynamic> json) {
+    return Org(
+      id: json['id'],
+      banks: json['banks'],
+      country:
+          json['country'] != null ? Country.fromJson(json['country']) : null,
+      created: json['created'] != null ? DateTime.parse(json['created']) : null,
+      modified:
+          json['modified'] != null ? DateTime.parse(json['modified']) : null,
+      orgCode: json['org_code'],
+      companyType: json['company_type'],
+      companyName: json['company_name'],
+      logo: json['logo'],
+      address: json['address'],
+      panNo: json['pan_no'],
+      panCert: json['pan_cert'],
+      pincode: json['pincode'],
+      contactPerson: json['contact_person'],
+      paymentTerm: json['payment_term'],
+      marketplace: json['marketplace'],
+      metaTags: json['meta_tags'],
+      role: json['role'] != null ? List<String>.from(json['role']) : null,
+    );
+  }
+
+  // TO JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'banks': banks,
+      'country': country?.toJson(),
+      'created': created?.toIso8601String(),
+      'modified': modified?.toIso8601String(),
+      'org_code': orgCode,
+      'company_type': companyType,
+      'company_name': companyName,
+      'logo': logo,
+      'address': address,
+      'pan_no': panNo,
+      'pan_cert': panCert,
+      'pincode': pincode,
+      'contact_person': contactPerson,
+      'payment_term': paymentTerm,
+      'marketplace': marketplace,
+      'meta_tags': metaTags,
+      'role': role,
+    };
+  }
+}
+
+class AuthToken {
+  String? access;
+  String? refresh;
+
+  AuthToken({
+    this.access,
+    this.refresh,
+  });
+
+  // FROM JSON
+  factory AuthToken.fromJson(Map<String, dynamic> json) {
+    return AuthToken(
+      access: json['access'],
+      refresh: json['refresh'],
+    );
+  }
+
+  // TO JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'access': access,
+      'refresh': refresh,
+    };
+  }
+}
+
+class Country {
+  String? id;
+  DateTime? created;
+  DateTime? modified;
+  String? name;
+  dynamic slug;
+  String? region;
+  String? code;
+  String? currencyName;
+  dynamic postalCodeFormat;
+  dynamic postalCodeRegex;
+  String? currency;
+
+  Country({
+    this.id,
+    this.created,
+    this.modified,
+    this.name,
+    this.slug,
+    this.region,
+    this.code,
+    this.currencyName,
+    this.postalCodeFormat,
+    this.postalCodeRegex,
+    this.currency,
+  });
+
+  // FROM JSON
+  factory Country.fromJson(Map<String, dynamic> json) {
+    return Country(
+      id: json['id'],
+      created: json['created'] != null ? DateTime.parse(json['created']) : null,
+      modified:
+          json['modified'] != null ? DateTime.parse(json['modified']) : null,
+      name: json['name'],
+      slug: json['slug'],
+      region: json['region'],
+      code: json['code'],
+      currencyName: json['currency_name'],
+      postalCodeFormat: json['postal_code_format'],
+      postalCodeRegex: json['postal_code_regex'],
+      currency: json['currency'],
+    );
+  }
+
+  // TO JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'created': created?.toIso8601String(),
+      'modified': modified?.toIso8601String(),
+      'name': name,
+      'slug': slug,
+      'region': region,
+      'code': code,
+      'currency_name': currencyName,
+      'postal_code_format': postalCodeFormat,
+      'postal_code_regex': postalCodeRegex,
+      'currency': currency,
     };
   }
 }

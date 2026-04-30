@@ -544,3 +544,123 @@ class InjectorPattern {
     };
   }
 }
+
+class RoutineTestAnalyzeModel {
+  String? testName;
+  String? status;
+  String? inputType;
+  String? outputType;
+  String? inputSignal;
+  String? outputSignal;
+  String? inputPid;
+  String? outputPid;
+  String? inputStartbyte;
+  String? outputStartbyte;
+  String? inputCalculation;
+  String? outputCalculation;
+  String? statusByteLocation;
+  String? byteDefinition;
+  String? byteValue; // Mapped from @byte
+  List<OutputResult>? routineTestOutput;
+  String? testStartTime;
+  String? testEndTime;
+
+  RoutineTestAnalyzeModel({
+    this.testName,
+    this.status,
+    this.inputType,
+    this.outputType,
+    this.inputSignal,
+    this.outputSignal,
+    this.inputPid,
+    this.outputPid,
+    this.inputStartbyte,
+    this.outputStartbyte,
+    this.inputCalculation,
+    this.outputCalculation,
+    this.statusByteLocation,
+    this.byteDefinition,
+    this.byteValue,
+    this.routineTestOutput,
+    this.testStartTime,
+    this.testEndTime,
+  });
+
+  // JSON -> Object
+  factory RoutineTestAnalyzeModel.fromJson(Map<String, dynamic> json) {
+    return RoutineTestAnalyzeModel(
+      testName: json['test_name'],
+      status: json['status'],
+      inputType: json['input_type'],
+      outputType: json['output_type'],
+      inputSignal: json['input_signal'],
+      outputSignal: json['output_signal'],
+      inputPid: json['input_pid'],
+      outputPid: json['output_pid'],
+      inputStartbyte: json['input_startbyte'],
+      outputStartbyte: json['output_startbyte'],
+      inputCalculation: json['input_calculation'],
+      outputCalculation: json['output_calculation'],
+      statusByteLocation: json['status_byte_location'],
+      byteDefinition: json['byte_definition'],
+      byteValue: json['byte'], // Handling the @byte keyword
+      routineTestOutput: json['routine_test_output'] != null
+          ? (json['routine_test_output'] as List)
+              .map((i) => OutputResult.fromJson(i))
+              .toList()
+          : null,
+      testStartTime: json['test_start_time'],
+      testEndTime: json['test_end_time'],
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'test_name': testName,
+      'status': status,
+      'input_type': inputType,
+      'output_type': outputType,
+      'input_signal': inputSignal,
+      'output_signal': outputSignal,
+      'input_pid': inputPid,
+      'output_pid': outputPid,
+      'input_startbyte': inputStartbyte,
+      'output_startbyte': outputStartbyte,
+      'input_calculation': inputCalculation,
+      'output_calculation': outputCalculation,
+      'status_byte_location': statusByteLocation,
+      'byte_definition': byteDefinition,
+      'byte': byteValue,
+      'routine_test_output': routineTestOutput?.map((v) => v.toJson()).toList(),
+      'test_start_time': testStartTime,
+      'test_end_time': testEndTime,
+    };
+  }
+}
+
+class OutputResult {
+  String? shortName;
+  String? value;
+
+  OutputResult({
+    this.shortName,
+    this.value,
+  });
+
+  // JSON -> Object
+  factory OutputResult.fromJson(Map<String, dynamic> json) {
+    return OutputResult(
+      shortName: json['short_name'],
+      value: json['value'],
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'short_name': shortName,
+      'value': value,
+    };
+  }
+}

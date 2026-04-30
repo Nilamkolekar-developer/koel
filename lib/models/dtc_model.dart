@@ -549,3 +549,42 @@ class FrameStatu {
         'enum': enumValue,
       };
 }
+class IvnResult {
+  int? id;
+  String? code;
+  String? description;
+  List<FrameDataset>? frameDatasets;
+
+  IvnResult({
+    this.id,
+    this.code,
+    this.description,
+    this.frameDatasets,
+  });
+
+  // Factory constructor to create an instance from a Map (JSON)
+  factory IvnResult.fromJson(Map<String, dynamic> json) {
+    return IvnResult(
+      id: json['id'] as int?,
+      code: json['code'] as String?,
+      description: json['description'] as String?,
+      // Mapping the nested list of FrameDataset objects
+      frameDatasets: json['frame_datasets'] != null
+          ? (json['frame_datasets'] as List)
+              .map((i) => FrameDataset.fromJson(i))
+              .toList()
+          : null,
+    );
+  }
+
+  // Method to convert the instance back to a Map (JSON)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'code': code,
+      'description': description,
+      // Mapping the list back to JSON format
+      'frame_datasets': frameDatasets?.map((i) => i.toJson()).toList(),
+    };
+  }
+}

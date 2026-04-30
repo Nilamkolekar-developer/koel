@@ -16,7 +16,6 @@
 // import 'package:get_storage/get_storage.dart';
 // import 'package:window_manager/window_manager.dart';
 
-
 // class App {
 //   static App instance = App();
 //  static const MethodChannel platform =
@@ -172,7 +171,7 @@
 
 //     return GetMaterialApp(
 //       debugShowCheckedModeBanner: false,
-//         // initialBinding: AppBinding(), 
+//         // initialBinding: AppBinding(),
 //       title: config.appName,
 //       initialRoute: Routes.splashScreen,
 //       theme: appTheme,
@@ -185,11 +184,20 @@ import 'dart:async';
 import 'dart:io';
 import 'package:autopeepal/api/app_envirments.dart';
 import 'package:autopeepal/common_widgets/app_error_widget.dart';
+import 'package:autopeepal/models/all_models.dart';
+import 'package:autopeepal/models/bluetoothDevices_model.dart';
+import 'package:autopeepal/models/jobCard_model.dart';
+import 'package:autopeepal/models/oem_model.dart';
+import 'package:autopeepal/models/remoteJobCard_model.dart';
+import 'package:autopeepal/models/user_model.dart';
 import 'package:autopeepal/routes/routes.dart';
 import 'package:autopeepal/routes/routes_string.dart';
+import 'package:autopeepal/services/api_services.dart';
 import 'package:autopeepal/services/error_handler/error_handler_service.dart';
 import 'package:autopeepal/themes/app_theme.dart';
 import 'package:autopeepal/utils/app_logs.dart';
+import 'package:autopeepal/utils/controls/wifi_connector.dart';
+import 'package:autopeepal/utils/controls/windows_usb.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
@@ -205,8 +213,70 @@ class App {
   static int oemId = 0;
   static int subModelId = 0;
   static String firmwareVersion = '';
+  static String remoteSessionId = '';
+  static AuthApiService services = AuthApiService();
+
+  static bool isInternet = false;
+
+  static WifiConnector? wifiConnectorService;
+  static UsbConnectorService? usbConnectorService;
+
+  static String masterLoginUserBY = '';
+  static String masterLoginUserRoleBY = '';
+  static String userName = '';
+  static int userId = 0;
+  static String userEmail = '';
+  static String userRole = '';
+  static int? userSubCategory;
+  static int? workshop;
+  static int? workshopGrp;
+  static String selectedModel = '';
+  static double screenHeight = 0;
   static String sessionId = '';
-  
+  static String ipAddress = '';
+  static bool netConnected = true;
+  static int modelId = 0;
+  static bool isLogin = false;
+
+  // ObservableCollection → List
+  static List<BluetoothDevicesModel> bluetoothDevices = [];
+
+  static List<String> ecuList = [];
+  static bool pageFreezIsEnable = false;
+  static bool isRemote = false;
+
+  static String notifyJobcardId = '';
+  static String notifyTechnitianName = '';
+  static String notifyWorkshopName = '';
+  static String notifyVehicleModel = '';
+  static String notifyState = '';
+  static String notifyExpertId = '';
+  static String notifyExpertFirstName = '';
+  static String notifyWorkshopAdd = '';
+  static bool isGd = false;
+  static bool dongleFound = false;
+
+  static UserResModel userResModel = UserResModel();
+
+  static AllModelsModel? forOfflineJobCardCreate;
+
+  static bool pageIsTrueOrNot = false;
+
+  static bool contentPageIsEnabled = false;
+  static bool notGoBack = true;
+  static bool pageOneToOtherGoBack = false;
+  static bool expertIsNotConnected = true;
+
+  static bool isExpert = false;
+  static List<ResponseJobCardModel>? isSameResponse;
+  static bool isRunningTimer = false;
+
+  static JobCardListModel? jcm;
+
+  static String dongleType = '';
+
+  static AllOemModel selectedOem = AllOemModel();
+
   String? _version;
   String? _buildNumber;
   bool? _devMode;
@@ -255,13 +325,13 @@ class App {
         //   print('⚠️ GetStorage error: $e');
         // }
         try {
-        await GetStorage.init(); 
-        print('✅ GetStorage initialized in default location');
-      } catch (e) {
-        // If it still fails on Windows, it's usually because 
-        // the app hasn't been run as 'windows' yet.
-        print('⚠️ GetStorage error: $e');
-      }
+          await GetStorage.init();
+          print('✅ GetStorage initialized in default location');
+        } catch (e) {
+          // If it still fails on Windows, it's usually because
+          // the app hasn't been run as 'windows' yet.
+          print('⚠️ GetStorage error: $e');
+        }
 
         // ── App config ────────────────────────────────────────
         _devMode = devMode;
@@ -334,12 +404,13 @@ class MyApp extends StatelessWidget {
       theme: appTheme,
       getPages: AppRoutes.routes,
       builder: (context, child) {
-        return child ?? const Center(
-          child: Text(
-            'App failed to load',
-            style: TextStyle(color: Colors.red, fontSize: 24),
-          ),
-        );
+        return child ??
+            const Center(
+              child: Text(
+                'App failed to load',
+                style: TextStyle(color: Colors.red, fontSize: 24),
+              ),
+            );
       },
     );
   }

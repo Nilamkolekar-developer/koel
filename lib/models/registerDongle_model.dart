@@ -10,22 +10,54 @@ class RegisterDongleModel {
       };
 }
 
-class RegisterDongleResponse {
-  RegDongleResponse? errorRes;
+class RegDongleRespons {
+  String? oem;
+  String? deviceType;
+  String? message;
+  String? macId;
+  String? user;
+  bool? isActive;
+  String? status;
+  String? error;
 
-  RegisterDongleResponse({this.errorRes});
+  RegDongleRespons({
+    this.oem,
+    this.deviceType,
+    this.message,
+    this.macId,
+    this.user,
+    this.isActive,
+    this.status,
+    this.error,
+  });
 
-  factory RegisterDongleResponse.fromJson(Map<String, dynamic> json) {
-    return RegisterDongleResponse(
-      errorRes: json['errorRes'] != null
-          ? RegDongleResponse.fromJson(json['errorRes'])
-          : null,
+  // Factory constructor to create an instance from a JSON map
+  factory RegDongleRespons.fromJson(Map<String, dynamic> json) {
+    return RegDongleRespons(
+      oem: json['oem'],
+      deviceType: json['device_type'],
+      message: json['message'],
+      macId: json['mac_id'],
+      user: json['user'],
+      isActive: json['is_active'],
+      status: json['status'],
+      error: json['error'],
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'errorRes': errorRes?.toJson(),
-      };
+  // Method to convert an instance back into a JSON map
+  Map<String, dynamic> toJson() {
+    return {
+      'oem': oem,
+      'device_type': deviceType,
+      'message': message,
+      'mac_id': macId,
+      'user': user,
+      'is_active': isActive,
+      'status': status,
+      'error': error,
+    };
+  }
 }
 
 class ErrorRes {
@@ -47,40 +79,3 @@ class ErrorRes {
       };
 }
 
-class RegDongleResponse {
-  String? oem;
-  String? deviceType;
-  String? message;
-  String? macId;
-  String? user;
-  bool? isActive;
-
-  RegDongleResponse({
-    this.oem,
-    this.deviceType,
-    this.message,
-    this.macId,
-    this.user,
-    this.isActive,
-  });
-
-  factory RegDongleResponse.fromJson(Map<String, dynamic> json) {
-    return RegDongleResponse(
-      oem: json['oem'],
-      deviceType: json['device_type'],
-      message: json['message'],
-      macId: json['mac_id'],
-      user: json['user'],
-      isActive: json['is_active'],
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'oem': oem,
-        'device_type': deviceType,
-        'message': message,
-        'mac_id': macId,
-        'user': user,
-        'is_active': isActive,
-      };
-}

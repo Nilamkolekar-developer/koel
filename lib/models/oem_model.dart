@@ -1,36 +1,44 @@
 class OemModel {
   int? count;
-  dynamic next;
-  dynamic previous;
-  List<AllOemModel> results; // non-nullable
+  Object? next;
+  Object? previous;
   String? message;
+  List<AllOemModel>? results;
 
   OemModel({
     this.count,
     this.next,
     this.previous,
-    required this.results,
     this.message,
+    this.results,
   });
 
-  factory OemModel.fromJson(Map<String, dynamic> json) => OemModel(
-        count: json['count'],
-        next: json['next'],
-        previous: json['previous'],
-        results: json['results'] != null
-            ? List<AllOemModel>.from(
-                json['results'].map((x) => AllOemModel.fromJson(x)))
-            : [],
-        message: json['message'] ?? "",
-      );
+  // Convert JSON Map to OemModel object
+  factory OemModel.fromJson(Map<String, dynamic> json) {
+    return OemModel(
+      count: json['count'],
+      next: json['next'],
+      previous: json['previous'],
+      message: json['message'],
+      // Map the list of results to AllOemModel objects
+      results: json['results'] != null
+          ? (json['results'] as List)
+              .map((i) => AllOemModel.fromJson(i))
+              .toList()
+          : null,
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-        'count': count,
-        'next': next,
-        'previous': previous,
-        'results': results.map((x) => x.toJson()).toList(),
-        'message': message,
-      };
+  // Convert OemModel object to JSON Map
+  Map<String, dynamic> toJson() {
+    return {
+      'count': count,
+      'next': next,
+      'previous': previous,
+      'message': message,
+      'results': results?.map((v) => v.toJson()).toList(),
+    };
+  }
 }
 
 class AllOemModel {

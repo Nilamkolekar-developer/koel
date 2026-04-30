@@ -355,8 +355,8 @@ class CreateJobcardController extends GetxController {
                 modelYear: subModel.modelYear,
                 ecu2: ecu.ecu?.firstOrNull,
                 ffSet: ecu.ffSet,
-                firingSequence: ecu.firingSequence,
-                noOfInjectors: ecu.noOfInjectors,
+                // firingSequence: ecu.firingSequence,
+                // noOfInjectors: ecu.noOfInjectors,
               ));
             }
             Get.dialog(

@@ -1,6 +1,7 @@
 class AppURLs {
-  static String get login => "accounts/login/";
-  static String get registerUser => "accounts/register/";
+  static String get login => "/api/v1/accounts/login/";
+  static String get registerUser => "/api/v1/accounts/new/register/";
+  static String get logout => "/api/v1/accounts/logout";
    static String get allOem => "oem/oem/";
   static String allModels(int? Id) => "models/get-models/?oem=${Id}";
   static String get workShopData => "oem/get-workshop";

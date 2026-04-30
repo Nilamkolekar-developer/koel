@@ -1,5 +1,4 @@
 import 'package:autopeepal/models/all_models.dart';
-import 'package:autopeepal/models/flashRecord_model.dart';
 import 'package:autopeepal/models/liveParameter_model.dart';
 
 /// =======================================================
