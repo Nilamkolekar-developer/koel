@@ -7,8 +7,8 @@ import 'package:autopeepal/themes/app_textstyles.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class RegisterScreen extends StatelessWidget {
-  RegisterScreen({super.key});
+class TickitScreen extends StatelessWidget {
+  TickitScreen({super.key});
   final controller = Get.put(RegistrationController());
 
   @override
@@ -29,7 +29,7 @@ class RegisterScreen extends StatelessWidget {
             }
           },
         ),
-        title: Text('Register', style: TextStyles.appBarTitle),
+        title: Text('Create Ticket', style: TextStyles.appBarTitle),
       ),
       body: SafeArea(
         child: Column(
@@ -41,65 +41,17 @@ class RegisterScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildFieldWithLabel(
-                      "Enter First Name",
-                      hint: "Enter first name",
+                      "Location",
+                      hint: "Enter location",
                       onChanged: (v) => controller.firstName.value = v,
                     ),
                     C15(),
-                    _buildFieldWithLabel(
-                      "Enter Last Name",
-                      hint: "Enter last name",
-                      onChanged: (v) => controller.lastName.value = v,
-                    ),
-                    C15(),
-                    _buildFieldWithLabel(
-                      "Enter Email ID",
-                      keyboardType: TextInputType.emailAddress,
-                      hint: "Enter email Id",
-                      onChanged: (v) => controller.email.value = v,
-                    ),
-                    C15(),
-                    _buildFieldWithLabel(
-                      "Enter Mobile Number",
-                      keyboardType: TextInputType.phone,
-                      hint: "Enter mobile number",
-                      onChanged: (v) => controller.mobileNumber.value = v,
-                    ),
-                    C15(),
-                    _buildFieldWithLabel(
-                      "Enter Password",
-                      obscureText: true,
-                      hint: "Enter password",
-                      onChanged: (v) => controller.password.value = v,
-                    ),
-                    C15(),
-                    _buildFieldWithLabel(
-                      "Confirm Password",
-                      obscureText: true,
-                      hint: "Confirm Password",
-                      onChanged: (v) => controller.confirmPassword.value = v,
-                    ),
-                    C15(),
-                      _buildFieldWithLabel(
-                      "Enter Employee Code/Pulse ID",
-                      keyboardType: TextInputType.emailAddress,
-                      hint: "Enter email Code",
-                      onChanged: (v) => controller.email.value = v,
-                    ),
-                    C15(),
-                      _buildFieldWithLabel(
-                      "Enter Mobile IMEI Number",
-                      keyboardType: TextInputType.emailAddress,
-                      hint: "Enter email Code",
-                      onChanged: (v) => controller.email.value = v,
-                    ),
-                    C15(),
-                    Obx(() => CustomDropdownTextField1(
+                   Obx(() => CustomDropdownTextField1(
                           selectedValue: controller.selectedOem,
                           items: controller.oemList
                               .map((e) => e.name ?? "")
                               .toList(),
-                          label: "Category Of User",
+                          label: " Isssue",
                           dialogTitle: "Select OEM",
                           hint: "Select OEM",
                           onItemSelected: (name) {
@@ -110,7 +62,69 @@ class RegisterScreen extends StatelessWidget {
                           },
                           title: '',
                         )),
-                    C25(),
+                    C15(),
+                      Obx(() => CustomDropdownTextField1(
+                          selectedValue: controller.selectedOem,
+                          items: controller.oemList
+                              .map((e) => e.name ?? "")
+                              .toList(),
+                          label: "Related Isssue",
+                          dialogTitle: "Select OEM",
+                          hint: "Select OEM",
+                          onItemSelected: (name) {
+                            // Find the full object and trigger the command logic
+                            final selected = controller.oemList
+                                .firstWhere((e) => e.name == name);
+                            controller.oemListCommand(selected);
+                          },
+                          title: '',
+                        )),
+                    C15(),
+                    _buildFieldWithLabel(
+                      "Dongle SSID",
+                      keyboardType: TextInputType.emailAddress,
+                      hint: "Enter Dongle SSID",
+                      onChanged: (v) => controller.email.value = v,
+                    ),
+                    C15(),
+                    _buildFieldWithLabel(
+                      "Invoice Number",
+                      keyboardType: TextInputType.phone,
+                      hint: "Enter invoice number",
+                      onChanged: (v) => controller.mobileNumber.value = v,
+                    ),
+                    C15(),
+                    _buildFieldWithLabel(
+                      "Invoice Date",
+                      obscureText: true,
+                      hint: "Enter invoice date",
+                      onChanged: (v) => controller.password.value = v,
+                    ),
+                    C15(),
+                    Obx(() => CustomDropdownTextField1(
+                          selectedValue: controller.selectedOem,
+                          items: controller.oemList
+                              .map((e) => e.name ?? "")
+                              .toList(),
+                          label: "Attach File",
+                          dialogTitle: "Select OEM",
+                          hint: "Select OEM",
+                          onItemSelected: (name) {
+                            // Find the full object and trigger the command logic
+                            final selected = controller.oemList
+                                .firstWhere((e) => e.name == name);
+                            controller.oemListCommand(selected);
+                          },
+                          title: '',
+                        )),
+                    C15(),
+                    _buildFieldWithLabel(
+                      "Comment",
+                      obscureText: true,
+                      hint: "Enter comment",
+                      onChanged: (v) => controller.confirmPassword.value = v,
+                    ),
+                    
                   ],
                 ),
               ),
@@ -124,12 +138,14 @@ class RegisterScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6)),
                     ),
                     onPressed:
-                        controller.isBusy.value ? null : controller.submit,
+                      (){
+Get.toNamed(Routes.tickitList);
+                      },
                     child: controller.isBusy.value
                         ? const CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2)
                         : const Text(
-                            'Submit',
+                            'Create Tickit',
                             style: TextStyle(
                               fontSize: 14,
                               fontFamily: "OpenSans-SemiBold",

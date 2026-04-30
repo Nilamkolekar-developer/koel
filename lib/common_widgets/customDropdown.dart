@@ -82,7 +82,7 @@ class CustomDropdownTextField extends StatelessWidget {
                   clipBehavior: Clip.antiAlias,
                   shape: RoundedRectangleBorder(
                     side: const BorderSide(
-                        color: AppColors.primaryColor, width: 6),
+                        color: AppColors.themeColor, width: 6),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: SizedBox(
@@ -92,7 +92,7 @@ class CustomDropdownTextField extends StatelessWidget {
                         // Header
                         Container(
                           width: double.infinity,
-                          color: AppColors.primaryColor,
+                          color: AppColors.themeColor,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Text(
                             title.toUpperCase(),
@@ -126,7 +126,7 @@ class CustomDropdownTextField extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primaryColor
+                                      color: AppColors.themeColor
                                           .withOpacity(0.4),
                                       border: Border.all(
                                           color: Colors.grey.shade400),
@@ -226,15 +226,15 @@ class CustomDropdownTextField1 extends StatelessWidget {
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
-                borderSide: BorderSide(color: AppColors.primaryColor),
+                borderSide: BorderSide(color: AppColors.themeColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
-                borderSide: BorderSide(color: AppColors.primaryColor),
+                borderSide: BorderSide(color: AppColors.themeColor),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
-                borderSide: BorderSide(color: AppColors.primaryColor, width: 1),
+                borderSide: BorderSide(color: AppColors.themeColor, width: 1),
               ),
               suffixIcon: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -246,13 +246,13 @@ class CustomDropdownTextField1 extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 3),
                         child: Container(
                           width: 2,
-                          color: AppColors.primaryColor,
+                          color: AppColors.themeColor,
                           margin: const EdgeInsets.only(right: 6),
                         ),
                       ),
                       Icon(
                         Icons.arrow_drop_down,
-                        color: iconColor ?? AppColors.primaryColor,
+                        color: iconColor ?? AppColors.themeColor,
                         size: iconSize ?? 50,
                       ),
                     ],
@@ -281,7 +281,7 @@ class CustomDropdownTextField1 extends StatelessWidget {
                   return Dialog(
                     shape: RoundedRectangleBorder(
                       side: const BorderSide(
-                          color: AppColors.primaryColor, width: 6),
+                          color: AppColors.themeColor, width: 6),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: SizedBox(
@@ -291,7 +291,7 @@ class CustomDropdownTextField1 extends StatelessWidget {
                           if (dialogTitle != null && dialogTitle!.isNotEmpty)
                             Container(
                               width: double.infinity,
-                              color: AppColors.primaryColor,
+                              color: AppColors.themeColor,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               child: Text(
                                 dialogTitle!.toUpperCase(),
@@ -322,7 +322,7 @@ class CustomDropdownTextField1 extends StatelessWidget {
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 14),
                                       decoration: BoxDecoration(
-                                        color: AppColors.primaryColor
+                                        color: AppColors.white
                                             .withOpacity(0.4),
                                         border: Border.all(
                                             color: Colors.grey.shade400),
@@ -401,15 +401,15 @@ class CustomDropdownTextField2 extends StatelessWidget {
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
-                borderSide: BorderSide(color: AppColors.primaryColor),
+                borderSide: BorderSide(color: AppColors.themeColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
-                borderSide: BorderSide(color: AppColors.primaryColor),
+                borderSide: BorderSide(color: AppColors.themeColor),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
-                borderSide: BorderSide(color: AppColors.primaryColor, width: 1),
+                borderSide: BorderSide(color: AppColors.themeColor, width: 1),
               ),
               suffixIcon: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -421,13 +421,13 @@ class CustomDropdownTextField2 extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 3),
                         child: Container(
                           width: 2,
-                          color: AppColors.primaryColor,
+                          color: AppColors.themeColor,
                           margin: const EdgeInsets.only(right: 6),
                         ),
                       ),
                       Icon(
                         Icons.arrow_drop_down,
-                        color: iconColor ?? AppColors.primaryColor,
+                        color: iconColor ?? AppColors.themeColor,
                         size: iconSize ?? 50,
                       ),
                     ],
@@ -447,7 +447,7 @@ class CustomDropdownTextField2 extends StatelessWidget {
                   return Dialog(
                     clipBehavior: Clip.antiAlias,
                     shape: RoundedRectangleBorder(
-                      side: BorderSide(color: AppColors.primaryColor, width: 2),
+                      side: BorderSide(color: AppColors.themeColor, width: 2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: ConstrainedBox(
@@ -477,7 +477,7 @@ class CustomDropdownTextField2 extends StatelessWidget {
                                           padding: const EdgeInsets.symmetric(
                                               vertical: 14),
                                           decoration: BoxDecoration(
-                                            color: AppColors.primaryColor
+                                            color: AppColors.themeColor
                                                 .withOpacity(0.4),
                                             border: Border.all(
                                                 color: Colors.grey.shade400),
@@ -551,7 +551,7 @@ class CustomSearchDropdown extends StatelessWidget {
           builder: (_) {
             return Dialog(
               shape: RoundedRectangleBorder(
-                side: const BorderSide(color: AppColors.primaryColor, width: 6),
+                side: const BorderSide(color: AppColors.themeColor, width: 6),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: ConstrainedBox(
@@ -563,7 +563,7 @@ class CustomSearchDropdown extends StatelessWidget {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
-                      color: AppColors.primaryColor,
+                      color: AppColors.themeColor,
                       child: Column(
                         children: [
                           /// ✅ Title (optional)
@@ -679,7 +679,7 @@ class CustomSearchDropdown extends StatelessWidget {
                                       const EdgeInsets.symmetric(vertical: 14),
                                   decoration: BoxDecoration(
                                     color:
-                                        AppColors.primaryColor.withOpacity(0.3),
+                                        AppColors.themeColor.withOpacity(0.3),
                                     border:
                                         Border.all(color: Colors.grey.shade400),
                                   ),
@@ -735,7 +735,7 @@ class CustomSearchDropdown extends StatelessWidget {
                 ),
                 suffixIcon: Icon(
                   Icons.arrow_drop_down,
-                  color: iconColor ?? AppColors.primaryColor,
+                  color: iconColor ?? AppColors.themeColor,
                   size: iconSize ?? 30,
                 ),
               ),
