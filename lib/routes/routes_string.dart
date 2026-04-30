@@ -1,4 +1,5 @@
 import 'package:autopeepal/views/screens/myEsn/flashECUScreen.dart';
+import 'package:autopeepal/views/screens/tickit/createTickit.dart';
 
 class Routes {
   static const splashScreen = '/splashScreen';
@@ -36,4 +37,8 @@ class Routes {
   static const closeServiceRequest = '/closeServiceRequest';
   static const srnpage = '/srnpage';
   static const flashEcuPage = '/flashEcuPage';
+  static const wifiDevicePage = '/wifiDevicePage';
+  static const appFeaturePage = '/appFeaturePage';
+  static const tickitScreen = '/tickitScreen';
+  static const tickitList = '/tickitList';
 }

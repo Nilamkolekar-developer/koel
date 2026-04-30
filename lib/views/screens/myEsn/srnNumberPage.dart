@@ -1,4 +1,5 @@
 import 'package:autopeepal/logic/controller/myEsn/srnController.dart';
+import 'package:autopeepal/routes/routes_string.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -7,7 +8,7 @@ class SrnNumberPage extends StatelessWidget {
 
   // Theme constants
   static const Color themeColor = Color(0xFF309F93);
-  
+
   // Dependency Injection
   final controller = Get.put(SrnController());
 
@@ -37,7 +38,8 @@ class SrnNumberPage extends StatelessWidget {
         ),
         title: const Text(
           'SRN Number',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500, fontSize: 18),
+          style: TextStyle(
+              color: Colors.black, fontWeight: FontWeight.w500, fontSize: 18),
         ),
         actions: [
           Padding(
@@ -46,7 +48,8 @@ class SrnNumberPage extends StatelessWidget {
               'assets/new/ic_ikonnect.jpg',
               width: 100,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(Icons.bolt, color: themeColor),
+              errorBuilder: (_, __, ___) =>
+                  const Icon(Icons.bolt, color: themeColor),
             ),
           ),
         ],
@@ -57,9 +60,11 @@ class SrnNumberPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Application Code : 6H.8435', style: TextStyle(fontSize: 16, color: Colors.black87)),
+              const Text('Application Code : 6H.8435',
+                  style: TextStyle(fontSize: 16, color: Colors.black87)),
               const SizedBox(height: 6),
-              const Text('Engine serial No : 12345678', style: TextStyle(fontSize: 16, color: Colors.black87)),
+              const Text('Engine serial No : 12345678',
+                  style: TextStyle(fontSize: 16, color: Colors.black87)),
               const SizedBox(height: 20),
 
               // ── 2-Column Grid ──
@@ -80,10 +85,9 @@ class SrnNumberPage extends StatelessWidget {
               _buildDropdown(),
 
               // ── Reactive Bottom Section ──
-              Obx(() => controller.isChannelSelected.value 
-                ? _buildDiagnosticSection() 
-                : const SizedBox.shrink()
-              ),
+              Obx(() => controller.isChannelSelected.value
+                  ? _buildDiagnosticSection()
+                  : const SizedBox.shrink()),
             ],
           ),
         ),
@@ -99,26 +103,30 @@ class SrnNumberPage extends StatelessWidget {
         border: Border.all(color: themeColor.withOpacity(0.6)),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text('${item.label} : ${item.value}', style: const TextStyle(color: themeColor, fontSize: 14)),
+      child: Text('${item.label} : ${item.value}',
+          style: const TextStyle(color: themeColor, fontSize: 14)),
     );
   }
 
   Widget _buildDropdown() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(border: Border.all(color: themeColor), borderRadius: BorderRadius.circular(4)),
+      decoration: BoxDecoration(
+          border: Border.all(color: themeColor),
+          borderRadius: BorderRadius.circular(4)),
       child: DropdownButtonHideUnderline(
         child: Obx(() => DropdownButton<String>(
-          value: controller.selectedChannel.value,
-          isExpanded: true,
-          hint: const Text('Select channel'),
-          icon: const Icon(Icons.arrow_drop_down, color: themeColor, size: 35),
-          items: const [
-            DropdownMenuItem(value: 'CAN1(ECU)', child: Text('CAN1(ECU)')),
-            DropdownMenuItem(value: 'CAN2(ECU)', child: Text('CAN2(ECU)')),
-          ],
-          onChanged: (val) => controller.updateChannel(val),
-        )),
+              value: controller.selectedChannel.value,
+              isExpanded: true,
+              hint: const Text('Select channel'),
+              icon: const Icon(Icons.arrow_drop_down,
+                  color: themeColor, size: 35),
+              items: const [
+                DropdownMenuItem(value: 'CAN1(ECU)', child: Text('CAN1(ECU)')),
+                DropdownMenuItem(value: 'CAN2(ECU)', child: Text('CAN2(ECU)')),
+              ],
+              onChanged: (val) => controller.updateChannel(val),
+            )),
       ),
     );
   }
@@ -132,7 +140,10 @@ class SrnNumberPage extends StatelessWidget {
             children: [
               Text(
                 'Start Diagnosis',
-                style: TextStyle(fontSize: 18, color: Colors.black54, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w500),
               ),
               SizedBox(height: 4),
               Text(
@@ -143,33 +154,39 @@ class SrnNumberPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 60),
-        
+
         // Single Horizontal Line of Icons
         Center(
-          child: SingleChildScrollView( // Added scroll just in case window is resized very small
+          child: SingleChildScrollView(
+            // Added scroll just in case window is resized very small
             scrollDirection: Axis.horizontal,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildCircularIcon(Icons.usb, "USB", onTap: () {  }),
+                _buildCircularIcon(Icons.usb, "USB", onTap: () {}),
                 const SizedBox(width: 30), // Spacing between icons
-                _buildCircularIcon(Icons.wifi, "Wi-Fi", onTap: () {  }),
+                _buildCircularIcon(Icons.wifi, "Wi-Fi", onTap: () {
+                  Get.toNamed(Routes.wifiDevicePage);
+                }),
                 const SizedBox(width: 30),
-                _buildCircularIcon(Icons.file_download_outlined, "Flash", onTap: () {  }),
+                _buildCircularIcon(Icons.file_download_outlined, "Flash",
+                    onTap: () {
+                  Get.toNamed(Routes.flashEcuPage);
+                }),
                 const SizedBox(width: 30),
-                _buildCircularIcon(Icons.edit_outlined, "Logs", onTap: () {  }),
+                _buildCircularIcon(Icons.edit_outlined, "Logs", onTap: () {}),
               ],
             ),
           ),
         ),
-        
+
         const SizedBox(height: 40),
         const Center(
           child: Text(
             'Download Flash Dataset',
             style: TextStyle(
-              color: Colors.black54, 
-            //  decoration: TextDecoration.underline,
+              color: Colors.black54,
+              //  decoration: TextDecoration.underline,
             ),
           ),
         ),
@@ -177,37 +194,42 @@ class SrnNumberPage extends StatelessWidget {
     );
   }
 
- Widget _buildCircularIcon(IconData icon, String label, {required VoidCallback onTap}) {
-  return InkWell(
-    onTap: onTap, // Dynamic navigation
-    borderRadius: BorderRadius.circular(50), // Visual feedback stays within the circle
-    child: Padding(
-      padding: const EdgeInsets.all(8.0), // Space around the clickable area
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // Prevents taking unnecessary vertical space
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20), // Padding instead of width/height
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: themeColor, width: 1.5),
+  Widget _buildCircularIcon(IconData icon, String label,
+      {required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap, // Dynamic navigation
+      borderRadius:
+          BorderRadius.circular(50), // Visual feedback stays within the circle
+      child: Padding(
+        padding: const EdgeInsets.all(8.0), // Space around the clickable area
+        child: Column(
+          mainAxisSize:
+              MainAxisSize.min, // Prevents taking unnecessary vertical space
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.all(20), // Padding instead of width/height
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: themeColor, width: 1.5),
+              ),
+              child: Icon(icon,
+                  color: themeColor, size: 30), // Icon size stays consistent
             ),
-            child: Icon(icon, color: themeColor, size: 30), // Icon size stays consistent
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12, 
-              color: Colors.black54,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _InfoItem {

@@ -4,11 +4,15 @@ import 'package:autopeepal/views/screens/auth/login.dart';
 import 'package:autopeepal/views/screens/auth/register.dart';
 
 import 'package:autopeepal/views/screens/myEsn/AddServiceRequestForm.dart';
+import 'package:autopeepal/views/screens/myEsn/appFeaturePage.dart';
 import 'package:autopeepal/views/screens/myEsn/closeServiceRequest.dart';
 import 'package:autopeepal/views/screens/myEsn/flashECUScreen.dart';
 import 'package:autopeepal/views/screens/myEsn/myEsnScreen.dart';
 import 'package:autopeepal/views/screens/myEsn/openServiceRequestScreen.dart';
 import 'package:autopeepal/views/screens/myEsn/srnNumberPage.dart';
+import 'package:autopeepal/views/screens/myEsn/wifiDevicePage.dart';
+import 'package:autopeepal/views/screens/tickit/createTickit.dart';
+import 'package:autopeepal/views/screens/tickit/tickitList.dart';
 
 import 'package:get/get.dart';
 import 'package:autopeepal/routes/routes_string.dart';
@@ -66,5 +70,25 @@ class AppRoutes {
       //binding: RegisterBindings(),
       page: () => FlashEcuPage(),
     ),
+    GetPage(
+      name: Routes.wifiDevicePage,
+      //binding: RegisterBindings(),
+      page: () => WifiDevicesPage(),
+    ),
+    GetPage(
+      name: Routes.appFeaturePage,
+      //binding: RegisterBindings(),
+      page: () => AppFeaturePage(),
+    ),
+    GetPage(
+        name: Routes.tickitScreen,
+        //binding: RegisterBindings(),
+        page: () => TickitScreen(),
+      ),
+    GetPage(
+        name: Routes.tickitList,
+        //binding: RegisterBindings(),
+        page: () => TicketsListPage(),
+      ),
   ];
 }

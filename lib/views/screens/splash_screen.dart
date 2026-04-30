@@ -13,11 +13,11 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.themeColor,
       body: Center(
-        child: Image.asset(
-          'assets/new/autopeepal.png', // your image path
-          width: 200, // adjust size if needed
-          fit: BoxFit.contain,
-        ),
+        // child: Image.asset(
+        //   "assets/new/loginicon.png",
+        //  height: 80, // adjust size if needed
+        //   fit: BoxFit.contain,
+        // ),
       ),
     );
   }

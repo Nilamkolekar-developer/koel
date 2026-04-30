@@ -1,3 +1,4 @@
+import 'package:autopeepal/routes/routes_string.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -114,8 +115,8 @@ class MyESNDrawer extends StatelessWidget {
       middleText: "Are you sure you want to logout?",
       buttonColor: themeColor, // Dialog button also matches #309f93
       confirmTextColor: Colors.white,
-      onConfirm: () => Get.back(),
-      onCancel: () {},
+      onConfirm: () => Get.offAllNamed(Routes.loginScreen),
+      onCancel: () {Get.back();},
     );
   }
 }
