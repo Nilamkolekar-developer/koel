@@ -1,85 +1,60 @@
 import 'dart:convert';
+
 import 'package:autopeepal/models/tickitList_model.dart';
 import 'package:autopeepal/routes/routes_string.dart';
 import 'package:autopeepal/services/androidOperationservice.dart';
-import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class TicketListViewController extends ChangeNotifier {
-   BuildContext? context;
+class TicketListViewController extends GetxController {
+  var ticketList = <TicketResult>[].obs;
 
- 
+  @override
+  void onInit() {
+    super.onInit();
+    getTicketList();
+  }
 
-  List<TicketResult> _ticketList = [];
-  List<TicketResult> get ticketList => _ticketList;
-
-  // Create Ticket (Command equivalent)
   Future<void> createTicket() async {
     var connectivityResult = await Connectivity().checkConnectivity();
 
     if (connectivityResult != ConnectivityResult.none) {
-      _showLoading();
+      Get.dialog(const Center(child: CircularProgressIndicator()),
+          barrierDismissible: false);
 
       await Future.delayed(const Duration(milliseconds: 100));
 
+      Get.back(); // close loader
       Get.toNamed(Routes.tickitScreen, arguments: {'isNew': true});
-
-
-      Navigator.pop(context!); // remove loading
     } else {
-      _showAlert("Alert", "Internet required");
+      Get.snackbar("Alert", "Internet required");
     }
   }
 
-  // Get Ticket List
   Future<void> getTicketList() async {
     try {
-      String? jsonData = await AndroidOperationsService. getData("GetTicketList");
+      String? jsonData =
+          await AndroidOperationsService.getData("GetTicketList");
 
-      if (jsonData!.isEmpty) return;
+      if (jsonData == null || jsonData.isEmpty) return;
 
       final res = TicketListModel.fromJson(json.decode(jsonData));
 
       if (res.message == "success") {
         if (res.results != null && res.results!.isNotEmpty) {
-          _ticketList = res.results!
-            ..sort((a, b) => b.created!.compareTo(a.created!));
-
-          notifyListeners();
+          ticketList.value = res.results!
+            ..sort((a, b) =>
+                (b.created ?? DateTime(1970))
+                    .compareTo(a.created ?? DateTime(1970)));
         } else {
-          _showAlert("Failed", "Ticket list not found.");
+          Get.snackbar("Failed", "Ticket list not found");
         }
       } else {
-        _showAlert("Error", res.message ?? "Unknown error");
+        Get.snackbar("Error", res.message ?? "Unknown error");
       }
     } catch (e) {
-      print(e);
+      Get.snackbar("Error", e.toString());
     }
-  }
-
-  // Helpers
-  void _showLoading() {
-    showDialog(
-      context: context!,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-  }
-
-  void _showAlert(String title, String message) {
-    showDialog(
-      context: context!,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            child: const Text("OK"),
-            onPressed: () => Navigator.pop(context!),
-          )
-        ],
-      ),
-    );
   }
 }

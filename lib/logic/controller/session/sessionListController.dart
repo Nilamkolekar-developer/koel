@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:autopeepal/app.dart';
 import 'package:autopeepal/models/all_models.dart';
 import 'package:autopeepal/models/jobCard_model.dart';
-import 'package:autopeepal/models/liveParameter_model.dart';
 import 'package:autopeepal/models/sessionList_model.dart';
 import 'package:autopeepal/models/staticData.dart';
 import 'package:autopeepal/models/variant_model.dart';
@@ -171,8 +170,7 @@ class SessionListController extends GetxController {
         CloseSession(status: "closed"),
       );
 
-      if (result != null &&
-          result.message == "success" &&
+      if (result.message == "success" &&
           result.status == "closed") {
         Get.snackbar("Success", "Session closed");
 
@@ -189,7 +187,7 @@ class SessionListController extends GetxController {
           Get.snackbar("Failed", "Session list not found");
         }
       } else {
-        Get.snackbar("Error", result?.message ?? "Session not closed");
+        Get.snackbar("Error", result.message ?? "Session not closed");
       }
     } catch (e) {
       Get.snackbar("Error", e.toString());

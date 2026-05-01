@@ -155,34 +155,209 @@
 //     );
 //   }
 // }
-import 'package:autopeepal/models/Tickit_model.dart';
-import 'package:autopeepal/routes/routes_string.dart';
+// import 'package:autopeepal/models/Tickit_model.dart';
+// import 'package:autopeepal/routes/routes_string.dart';
+// import 'package:flutter/material.dart';
+// import 'package:get/get.dart';
+// import 'package:autopeepal/common_widgets/custom_drawer.dart';
+
+// class TicketsListPage extends StatelessWidget {
+//   const TicketsListPage({super.key});
+
+//   static const Color themeColor = Color(0xFF309F93);
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//        drawer: const MyESNDrawer(),
+//       backgroundColor: Colors.white,
+//       appBar: AppBar(
+//         backgroundColor: Colors.white,
+//         elevation: 0,
+//         toolbarHeight: 70,
+//         leading: IconButton(
+//           icon: const Icon(Icons.menu, color: Colors.black),
+//      onPressed: () => Scaffold.of(context).openDrawer(),
+//         ),
+//         title: const Text(
+//           "Tickets",
+//           style: TextStyle(
+//               color: Colors.black, fontSize: 22, fontWeight: FontWeight.w500),
+//         ),
+//         actions: [
+//           Padding(
+//             padding: const EdgeInsets.only(right: 24),
+//             child: Image.asset('assets/new/ic_ikonnect.jpg', width: 110),
+//           ),
+//         ],
+//       ),
+//       body: Scrollbar(
+//         thumbVisibility: true,
+//         child: ListView.separated(
+//           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+//           itemCount: 10,
+//           separatorBuilder: (context, index) => Divider(
+//             height: 1, // Reduced height for a tighter list
+//             thickness: 1,
+//             color: Colors.grey.shade300, // Even softer gray
+//           ),
+//           itemBuilder: (context, index) {
+//             return _buildTicketItem(
+//               TicketModel(
+//                 ticketNumber: "TCK-KOEL-100000000${9 - index}",
+//                 status: index % 2 == 0 ? "Open" : "In Progress",
+//                 createdDate: "17/06/2025 10:31:49 pm",
+//               ),
+//             );
+//           },
+//         ),
+//       ),
+//       floatingActionButton: FloatingActionButton.extended(
+//         onPressed: () {
+//           Get.toNamed(Routes.tickitScreen);
+//         },
+//         backgroundColor: themeColor,
+//         icon: const Icon(Icons.add, color: Colors.white),
+//         label: const Text("Create Ticket", style: TextStyle(color: Colors.white)),
+//       ),
+//     );
+//   }
+
+//   Widget _buildTicketItem(TicketModel ticket) {
+//     return MouseRegion(
+//       cursor: SystemMouseCursors.click,
+//       child: InkWell(
+//         onTap: () {},
+//         hoverColor: themeColor.withOpacity(0.05),
+//         child: Padding(
+//           padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+//           child: Row(
+//             crossAxisAlignment: CrossAxisAlignment.center, // Center aligned for better symmetry
+//             children: [
+//               // --- Left Side: Leading Icon ---
+//               Container(
+//                 padding: const EdgeInsets.all(12),
+//                 decoration: BoxDecoration(
+//                   color: Colors.grey.shade100,
+//                   borderRadius: BorderRadius.circular(10),
+//                 ),
+//                 child: const Icon(Icons.confirmation_number_outlined, color: themeColor, size: 26),
+//               ),
+//               const SizedBox(width: 20),
+              
+//               // --- Middle: Info Column ---
+//               Expanded(
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Text(
+//                       ticket.ticketNumber,
+//                       style: const TextStyle(
+//                         color: Colors.black, 
+//                         fontSize: 17, 
+//                         fontWeight: FontWeight.bold
+//                       ),
+//                     ),
+//                     const SizedBox(height: 8),
+//                     Row(
+//                       children: [
+//                         Icon(Icons.calendar_month_outlined, size: 16, color: Colors.grey.shade600),
+//                         const SizedBox(width: 6),
+//                         Text(
+//                           "Created: ${ticket.createdDate}",
+//                           style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+//                         ),
+//                       ],
+//                     ),
+//                   ],
+//                 ),
+//               ),
+
+//               // --- Right Side: Status and History ---
+//               Column(
+//                 crossAxisAlignment: CrossAxisAlignment.end,
+//                 children: [
+//                   _buildStatusBadge(ticket.status),
+//                   const SizedBox(height: 12),
+//                   const Text(
+//                     "View History",
+//                     style: TextStyle(
+//                       color: themeColor, // Use theme color for the link
+//                       fontWeight: FontWeight.w600,
+//                       fontSize: 14,
+//                      // decoration: TextDecoration.underline,
+//                     ),
+//                   ),
+//                 ],
+//               ),
+              
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+
+//   Widget _buildStatusBadge(String status) {
+//     bool isOpen = status == "Open";
+//     return Container(
+//       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+//       decoration: BoxDecoration(
+//         color: isOpen ? Colors.green.shade50 : Colors.orange.shade50,
+//         borderRadius: BorderRadius.circular(8),
+//         border: Border.all(
+//           color: isOpen ? Colors.green.shade200 : Colors.orange.shade200
+//         ),
+//       ),
+//       child: Text(
+//         status,
+//         style: TextStyle(
+//           color: isOpen ? Colors.green.shade700 : Colors.orange.shade800,
+//           fontWeight: FontWeight.bold,
+//           fontSize: 13,
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+import 'package:autopeepal/logic/controller/tickit/tickitListController.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:autopeepal/common_widgets/custom_drawer.dart';
 
 class TicketsListPage extends StatelessWidget {
-  const TicketsListPage({super.key});
+  TicketsListPage({super.key});
 
   static const Color themeColor = Color(0xFF309F93);
+
+  final TicketListViewController controller =
+      Get.put(TicketListViewController());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       drawer: const MyESNDrawer(),
+      drawer: const MyESNDrawer(),
       backgroundColor: Colors.white,
+
+      // ---------------- APP BAR ----------------
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         toolbarHeight: 70,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.black),
-     onPressed: () => Scaffold.of(context).openDrawer(),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
         title: const Text(
           "Tickets",
           style: TextStyle(
-              color: Colors.black, fontSize: 22, fontWeight: FontWeight.w500),
+            color: Colors.black,
+            fontSize: 22,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         actions: [
           Padding(
@@ -191,122 +366,149 @@ class TicketsListPage extends StatelessWidget {
           ),
         ],
       ),
-      body: Scrollbar(
-        thumbVisibility: true,
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-          itemCount: 10,
-          separatorBuilder: (context, index) => Divider(
-            height: 1, // Reduced height for a tighter list
-            thickness: 1,
-            color: Colors.grey.shade300, // Even softer gray
-          ),
-          itemBuilder: (context, index) {
-            return _buildTicketItem(
-              TicketModel(
-                ticketNumber: "TCK-KOEL-100000000${9 - index}",
-                status: index % 2 == 0 ? "Open" : "In Progress",
-                createdDate: "17/06/2025 10:31:49 pm",
+
+      // ---------------- BODY ----------------
+      body: Obx(() {
+        // 🔹 Loading state
+        if (controller.ticketList.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        return Scrollbar(
+          thumbVisibility: true,
+          child: RefreshIndicator(
+            onRefresh: controller.getTicketList,
+            child: ListView.separated(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              itemCount: controller.ticketList.length,
+              separatorBuilder: (_, __) => Divider(
+                height: 1,
+                thickness: 1,
+                color: Colors.grey.shade300,
               ),
-            );
-          },
-        ),
-      ),
+              itemBuilder: (context, index) {
+                final ticket = controller.ticketList[index];
+
+                return _buildTicketItem(
+                  ticketNumber: ticket.ticketNo ?? "N/A",
+                  status: ticket.status ?? "Unknown",
+                  createdDate:
+                      ticket.created?.toString().split('.')[0] ?? "",
+                );
+              },
+            ),
+          ),
+        );
+      }),
+
+      // ---------------- FAB ----------------
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Get.toNamed(Routes.tickitScreen);
-        },
+        onPressed: controller.createTicket,
         backgroundColor: themeColor,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Create Ticket", style: TextStyle(color: Colors.white)),
+        label: const Text(
+          "Create Ticket",
+          style: TextStyle(color: Colors.white),
+        ),
       ),
     );
   }
 
-  Widget _buildTicketItem(TicketModel ticket) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: InkWell(
-        onTap: () {},
-        hoverColor: themeColor.withOpacity(0.05),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center, // Center aligned for better symmetry
-            children: [
-              // --- Left Side: Leading Icon ---
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.confirmation_number_outlined, color: themeColor, size: 26),
+  // ---------------- ITEM UI ----------------
+  Widget _buildTicketItem({
+    required String ticketNumber,
+    required String status,
+    required String createdDate,
+  }) {
+    return InkWell(
+      onTap: () {
+        // Navigate to details if needed
+      },
+      child: Padding(
+        padding:
+            const EdgeInsets.symmetric(vertical: 16.0, horizontal: 10.0),
+        child: Row(
+          children: [
+            // 🔹 Icon
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 20),
-              
-              // --- Middle: Info Column ---
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ticket.ticketNumber,
-                      style: const TextStyle(
-                        color: Colors.black, 
-                        fontSize: 17, 
-                        fontWeight: FontWeight.bold
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_month_outlined, size: 16, color: Colors.grey.shade600),
-                        const SizedBox(width: 6),
-                        Text(
-                          "Created: ${ticket.createdDate}",
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              child: const Icon(
+                Icons.confirmation_number_outlined,
+                color: themeColor,
+                size: 24,
               ),
+            ),
 
-              // --- Right Side: Status and History ---
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+            const SizedBox(width: 16),
+
+            // 🔹 Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStatusBadge(ticket.status),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "View History",
-                    style: TextStyle(
-                      color: themeColor, // Use theme color for the link
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                     // decoration: TextDecoration.underline,
+                  Text(
+                    ticketNumber,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today,
+                          size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 6),
+                      Text(
+                        createdDate,
+                        style: TextStyle(
+                            fontSize: 13, color: Colors.grey.shade600),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              
-            ],
-          ),
+            ),
+
+            // 🔹 Right side
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildStatusBadge(status),
+                const SizedBox(height: 8),
+                const Text(
+                  "View",
+                  style: TextStyle(
+                    color: themeColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
+  // ---------------- STATUS BADGE ----------------
   Widget _buildStatusBadge(String status) {
-    bool isOpen = status == "Open";
+    bool isOpen = status.toLowerCase() == "open";
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: isOpen ? Colors.green.shade50 : Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: isOpen ? Colors.green.shade200 : Colors.orange.shade200
+          color: isOpen ? Colors.green.shade200 : Colors.orange.shade200,
         ),
       ),
       child: Text(
@@ -314,7 +516,7 @@ class TicketsListPage extends StatelessWidget {
         style: TextStyle(
           color: isOpen ? Colors.green.shade700 : Colors.orange.shade800,
           fontWeight: FontWeight.bold,
-          fontSize: 13,
+          fontSize: 12,
         ),
       ),
     );

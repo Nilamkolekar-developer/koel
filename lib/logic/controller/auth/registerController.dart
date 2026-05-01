@@ -527,286 +527,404 @@
 //     return true;
 //   }
 // }
-import 'dart:convert';
-import 'package:autopeepal/models/categoryRoot_model.dart';
+// import 'dart:convert';
+// import 'package:autopeepal/models/categoryRoot_model.dart';
+// import 'package:autopeepal/models/createUserReq_model.dart';
+// import 'package:autopeepal/models/oem_model.dart';
+// import 'package:autopeepal/models/workshopGroup_model.dart';
+// import 'package:autopeepal/services/api_services.dart';
+// import 'package:get/get.dart';
+// import 'package:flutter/material.dart';
+
+// class UserRegistrationController extends GetxController {
+//   final AuthApiService apiServices = AuthApiService();
+
+//   // 🔹 Observable state
+//   var errorMessage = ''.obs;
+
+//   var oemViewVisible = false.obs;
+//   var workshopGroupViewVisible = false.obs;
+//   var cityViewVisible = false.obs;
+//   var workshopViewVisible = false.obs;
+
+//   var categoryViewVisible = false.obs;
+//   var isCatListVisible = false.obs;
+//   var isSubcatListVisible = false.obs;
+
+//   var isCityOptionVisible = false.obs;
+//   var isWorkshopOptionVisible = false.obs;
+
+//   var workshopDisplayName = "Workshop".obs;
+
+//   // 🔹 Lists
+//   var oemList = <AllOemModel>[].obs;
+//   var workShopGroupList = <WorkShopGroupModel>[].obs;
+//   var staticWorkShopGroupList = <WorkShopGroupModel>[].obs;
+//   var categoryList = <Category>[].obs;
+
+//   // 🔹 Selected
+//   AllOemModel? selectedOem;
+//   WorkShopGroupModel? selectedWorkShopGroup;
+//   WorkCity? selectedCity;
+//   WorkShopGroup? selectedWorkshop;
+//   Category? selectedCategory;
+//   Subcategory? selectedSubCategory;
+
+//   // 🔹 Form model
+//   var userRequestModel = CreateUserReqModel().obs;
+
+//   // 🔹 Search
+//   var grpSearchKey = ''.obs;
+//   var citySearchKey = ''.obs;
+//   var workshopSearchKey = ''.obs;
+
+//   // -------------------------------
+//   // UI Actions (Commands)
+//   // -------------------------------
+
+//   void hideAllViews() {
+//     oemViewVisible.value = false;
+//     workshopGroupViewVisible.value = false;
+//     cityViewVisible.value = false;
+//     workshopViewVisible.value = false;
+//     categoryViewVisible.value = false;
+//   }
+
+//   Future<void> showWorkshopGroupView() async {
+//     Get.dialog(const Center(child: CircularProgressIndicator()),
+//         barrierDismissible: false);
+
+//     await Future.delayed(const Duration(milliseconds: 200));
+//     workshopGroupViewVisible.value = true;
+
+//     await getData();
+
+//     Get.back();
+//   }
+
+//   void selectOem(AllOemModel oem) {
+//     selectedOem = oem;
+//     selectedWorkShopGroup = null;
+//     selectedCity = null;
+//     selectedWorkshop = null;
+//     oemViewVisible.value = false;
+//   }
+
+//   void selectWorkshopGroup(WorkShopGroupModel group) {
+//     selectedWorkShopGroup = group;
+//     selectedCity = null;
+//     selectedWorkshop = null;
+
+//     workshopGroupViewVisible.value = false;
+//     isCityOptionVisible.value = true;
+//     isWorkshopOptionVisible.value = false;
+
+//     if (group.workshopsGroupName!.toUpperCase().contains("EMPLOYEE")) {
+//       workshopDisplayName.value = "Business Unit";
+//     } else {
+//       workshopDisplayName.value = "Workshop";
+//     }
+//   }
+
+//   void selectCity(WorkCity city) {
+//     selectedCity = city;
+//     selectedWorkshop = null;
+//     cityViewVisible.value = false;
+//     isWorkshopOptionVisible.value = true;
+//   }
+
+//   void selectWorkshop(WorkShopGroup workshop) {
+//     selectedWorkshop = workshop;
+//     workshopViewVisible.value = false;
+//   }
+
+//   // -------------------------------
+//   // API Calls
+//   // -------------------------------
+
+//   Future<void> getOems() async {
+//     try {
+//       final res = await apiServices.getAllOem();
+
+//       if (res.message == "success" && res.results!.isNotEmpty) {
+//         oemList.assignAll(res.results!);
+//       } else {
+//         errorMessage.value = res.message ?? "OEM not found";
+//       }
+//     } catch (e) {
+//       errorMessage.value = e.toString();
+//     }
+//   }
+
+//   Future<void> getCategories() async {
+//     try {
+//       final res = await apiServices.getAllCategories();
+
+//       if (res.message == "success" && res.results!.isNotEmpty) {
+//         categoryList.assignAll(res.results!);
+//       } else {
+//         errorMessage.value = res.message ?? "Category not found";
+//       }
+//     } catch (e) {
+//       errorMessage.value = e.toString();
+//     }
+//   }
+
+//   // -------------------------------
+//   // Complex JSON Parsing (simplified)
+//   // -------------------------------
+
+//   Future<void> getData() async {
+//     try {
+//       workShopGroupList.clear();
+//       staticWorkShopGroupList.clear();
+
+//       final result = await apiServices.getWorkShopData();
+//       final decoded = json.decode(result);
+
+//       final workshops = decoded['workshops'];
+
+//       workshops.forEach((groupName, cities) {
+//         List<WorkCity> cityList = [];
+
+//         cities.forEach((cityName, workshopArray) {
+//           List<WorkShopGroup> workshopList = [];
+
+//           for (var ws in workshopArray) {
+//             for (var item in ws) {
+//               workshopList.add(WorkShopGroup.fromJson(item));
+//             }
+//           }
+
+//           cityList.add(WorkCity(
+//             city: cityName,
+//             workshops: workshopList,
+//             //staticWorkshops: List.from(workshopList),
+//           ));
+//         });
+
+//         if (cityList.isNotEmpty) {
+//           workShopGroupList.add(
+//             WorkShopGroupModel(
+//               workshopsGroupName: groupName,
+//               cityList: cityList,
+//              // staticCityList: List.from(cityList),
+//             ),
+//           );
+//         }
+//       });
+
+//       staticWorkShopGroupList.assignAll(workShopGroupList);
+//     } catch (e) {
+//       print(e);
+//     }
+//   }
+
+//   // -------------------------------
+//   // Submit
+//   // -------------------------------
+
+//   Future<void> submit() async {
+//     final model = userRequestModel.value;
+
+//     if (model.firstName == null ||
+//         model.email == null ||
+//         model.password != model.password2) {
+//       Get.snackbar("Error", "Validation failed");
+//       return;
+//     }
+
+//     if (selectedWorkShopGroup == null ||
+//         selectedCity == null ||
+//         selectedWorkshop == null) {
+//       Get.snackbar("Error", "Please select all required fields");
+//       return;
+//     }
+
+//     Get.dialog(const Center(child: CircularProgressIndicator()),
+//         barrierDismissible: false);
+
+//     try {
+//       model.workshop = selectedWorkshop!.id;
+
+//       final result = await apiServices.createNewUser(model);
+
+//       if (result.status == "success" &&
+//           result.apiStatus == "created") {
+//       //  Get.snackbar("Success", result.message ?? "Registered");
+//         Get.back(); // close dialog
+//         Get.back(); // go back page
+//       } else {
+//         Get.snackbar("Error", result.status ?? "Failed");
+//       }
+//     } catch (e) {
+//       Get.snackbar("Error", e.toString());
+//     }
+
+//     Get.back();
+//   }
+
+//   // -------------------------------
+//   // Search Filters
+//   // -------------------------------
+
+//   void filterGroup(String key) {
+//     if (key.isEmpty) {
+//       workShopGroupList.assignAll(staticWorkShopGroupList);
+//     } else {
+//       workShopGroupList.assignAll(
+//         staticWorkShopGroupList
+//             .where((e) =>
+//                 e.workshopsGroupName!.toLowerCase().contains(key.toLowerCase()))
+//             .toList(),
+//       );
+//     }
+//   }
+
+//   // void filterCity(String key) {
+//   //   if (selectedWorkShopGroup == null) return;
+
+//   //   if (key.isEmpty) {
+//   //     selectedWorkShopGroup!.cityList =
+//   //         List.from(selectedWorkShopGroup!.staticCityList);
+//   //   } else {
+//   //     selectedWorkShopGroup!.cityList = selectedWorkShopGroup!.staticCityList
+//   //         .where((e) => e.city.toLowerCase().contains(key.toLowerCase()))
+//   //         .toList();
+//   //   }
+
+//   //   update();
+//   // }
+
+//   // void filterWorkshop(String key) {
+//   //   if (selectedCity == null) return;
+
+//   //   if (key.isEmpty) {
+//   //     selectedCity!.workshops = List.from(selectedCity!.staticWorkshops);
+//   //   } else {
+//   //     selectedCity!.workshops = selectedCity!.staticWorkshops
+//   //         .where((e) => e.name.toLowerCase().contains(key.toLowerCase()))
+//   //         .toList();
+//   //   }
+
+//   //   update();
+//   // }
+// }
 import 'package:autopeepal/models/createUserReq_model.dart';
 import 'package:autopeepal/models/oem_model.dart';
-import 'package:autopeepal/models/workshopGroup_model.dart';
 import 'package:autopeepal/services/api_services.dart';
-import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class UserRegistrationController extends GetxController {
   final AuthApiService apiServices = AuthApiService();
 
-  // 🔹 Observable state
-  var errorMessage = ''.obs;
+  // ---------------- STATE ----------------
+  RxBool isLoading = false.obs;
 
-  var oemViewVisible = false.obs;
-  var workshopGroupViewVisible = false.obs;
-  var cityViewVisible = false.obs;
-  var workshopViewVisible = false.obs;
+  // ---------------- TEXT CONTROLLERS ----------------
+  final firstNameController = TextEditingController();
+  final lastNameController = TextEditingController();
+  final emailController = TextEditingController();
+  final mobileController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
-  var categoryViewVisible = false.obs;
-  var isCatListVisible = false.obs;
-  var isSubcatListVisible = false.obs;
+  // ---------------- DROPDOWN ----------------
+  RxList<AllOemModel> oemList = <AllOemModel>[].obs;
+  Rx<AllOemModel?> selectedOem = Rx<AllOemModel?>(null);
 
-  var isCityOptionVisible = false.obs;
-  var isWorkshopOptionVisible = false.obs;
+  // ---------------- MODEL ----------------
+  CreateUserReqModel requestModel = CreateUserReqModel();
 
-  var workshopDisplayName = "Workshop".obs;
-
-  // 🔹 Lists
-  var oemList = <AllOemModel>[].obs;
-  var workShopGroupList = <WorkShopGroupModel>[].obs;
-  var staticWorkShopGroupList = <WorkShopGroupModel>[].obs;
-  var categoryList = <Category>[].obs;
-
-  // 🔹 Selected
-  AllOemModel? selectedOem;
-  WorkShopGroupModel? selectedWorkShopGroup;
-  WorkCity? selectedCity;
-  WorkShopGroup? selectedWorkshop;
-  Category? selectedCategory;
-  Subcategory? selectedSubCategory;
-
-  // 🔹 Form model
-  var userRequestModel = CreateUserReqModel().obs;
-
-  // 🔹 Search
-  var grpSearchKey = ''.obs;
-  var citySearchKey = ''.obs;
-  var workshopSearchKey = ''.obs;
-
-  // -------------------------------
-  // UI Actions (Commands)
-  // -------------------------------
-
-  void hideAllViews() {
-    oemViewVisible.value = false;
-    workshopGroupViewVisible.value = false;
-    cityViewVisible.value = false;
-    workshopViewVisible.value = false;
-    categoryViewVisible.value = false;
+  @override
+  void onInit() {
+    super.onInit();
+    getOems();
   }
 
-  Future<void> showWorkshopGroupView() async {
-    Get.dialog(const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false);
-
-    await Future.delayed(const Duration(milliseconds: 200));
-    workshopGroupViewVisible.value = true;
-
-    await getData();
-
-    Get.back();
-  }
-
-  void selectOem(AllOemModel oem) {
-    selectedOem = oem;
-    selectedWorkShopGroup = null;
-    selectedCity = null;
-    selectedWorkshop = null;
-    oemViewVisible.value = false;
-  }
-
-  void selectWorkshopGroup(WorkShopGroupModel group) {
-    selectedWorkShopGroup = group;
-    selectedCity = null;
-    selectedWorkshop = null;
-
-    workshopGroupViewVisible.value = false;
-    isCityOptionVisible.value = true;
-    isWorkshopOptionVisible.value = false;
-
-    if (group.workshopsGroupName!.toUpperCase().contains("EMPLOYEE")) {
-      workshopDisplayName.value = "Business Unit";
-    } else {
-      workshopDisplayName.value = "Workshop";
-    }
-  }
-
-  void selectCity(WorkCity city) {
-    selectedCity = city;
-    selectedWorkshop = null;
-    cityViewVisible.value = false;
-    isWorkshopOptionVisible.value = true;
-  }
-
-  void selectWorkshop(WorkShopGroup workshop) {
-    selectedWorkshop = workshop;
-    workshopViewVisible.value = false;
-  }
-
-  // -------------------------------
-  // API Calls
-  // -------------------------------
-
+  // ---------------- API ----------------
   Future<void> getOems() async {
     try {
+      isLoading.value = true;
+
       final res = await apiServices.getAllOem();
 
-      if (res.message == "success" && res.results!.isNotEmpty) {
-        oemList.assignAll(res.results!);
+      if (res.message == "success") {
+        oemList.assignAll(res.results ?? []);
       } else {
-        errorMessage.value = res.message ?? "OEM not found";
-      }
-    } catch (e) {
-      errorMessage.value = e.toString();
-    }
-  }
-
-  Future<void> getCategories() async {
-    try {
-      final res = await apiServices.getAllCategories();
-
-      if (res.message == "success" && res.results!.isNotEmpty) {
-        categoryList.assignAll(res.results!);
-      } else {
-        errorMessage.value = res.message ?? "Category not found";
-      }
-    } catch (e) {
-      errorMessage.value = e.toString();
-    }
-  }
-
-  // -------------------------------
-  // Complex JSON Parsing (simplified)
-  // -------------------------------
-
-  Future<void> getData() async {
-    try {
-      workShopGroupList.clear();
-      staticWorkShopGroupList.clear();
-
-      final result = await apiServices.getWorkShopData();
-      final decoded = json.decode(result);
-
-      final workshops = decoded['workshops'];
-
-      workshops.forEach((groupName, cities) {
-        List<WorkCity> cityList = [];
-
-        cities.forEach((cityName, workshopArray) {
-          List<WorkShopGroup> workshopList = [];
-
-          for (var ws in workshopArray) {
-            for (var item in ws) {
-              workshopList.add(WorkShopGroup.fromJson(item));
-            }
-          }
-
-          cityList.add(WorkCity(
-            city: cityName,
-            workshops: workshopList,
-            //staticWorkshops: List.from(workshopList),
-          ));
-        });
-
-        if (cityList.isNotEmpty) {
-          workShopGroupList.add(
-            WorkShopGroupModel(
-              workshopsGroupName: groupName,
-              cityList: cityList,
-             // staticCityList: List.from(cityList),
-            ),
-          );
-        }
-      });
-
-      staticWorkShopGroupList.assignAll(workShopGroupList);
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  // -------------------------------
-  // Submit
-  // -------------------------------
-
-  Future<void> submit() async {
-    final model = userRequestModel.value;
-
-    if (model.firstName == null ||
-        model.email == null ||
-        model.password != model.password2) {
-      Get.snackbar("Error", "Validation failed");
-      return;
-    }
-
-    if (selectedWorkShopGroup == null ||
-        selectedCity == null ||
-        selectedWorkshop == null) {
-      Get.snackbar("Error", "Please select all required fields");
-      return;
-    }
-
-    Get.dialog(const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false);
-
-    try {
-      model.workshop = selectedWorkshop!.id;
-
-      final result = await apiServices.createNewUser(model);
-
-      if (result.status == "success" &&
-          result.apiStatus == "created") {
-      //  Get.snackbar("Success", result.message ?? "Registered");
-        Get.back(); // close dialog
-        Get.back(); // go back page
-      } else {
-        Get.snackbar("Error", result.status ?? "Failed");
+        Get.snackbar("Error", res.message ?? "OEM not found");
       }
     } catch (e) {
       Get.snackbar("Error", e.toString());
-    }
-
-    Get.back();
-  }
-
-  // -------------------------------
-  // Search Filters
-  // -------------------------------
-
-  void filterGroup(String key) {
-    if (key.isEmpty) {
-      workShopGroupList.assignAll(staticWorkShopGroupList);
-    } else {
-      workShopGroupList.assignAll(
-        staticWorkShopGroupList
-            .where((e) =>
-                e.workshopsGroupName!.toLowerCase().contains(key.toLowerCase()))
-            .toList(),
-      );
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  // void filterCity(String key) {
-  //   if (selectedWorkShopGroup == null) return;
+  void selectOem(AllOemModel model) {
+    selectedOem.value = model;
+  }
 
-  //   if (key.isEmpty) {
-  //     selectedWorkShopGroup!.cityList =
-  //         List.from(selectedWorkShopGroup!.staticCityList);
-  //   } else {
-  //     selectedWorkShopGroup!.cityList = selectedWorkShopGroup!.staticCityList
-  //         .where((e) => e.city.toLowerCase().contains(key.toLowerCase()))
-  //         .toList();
-  //   }
+  // ---------------- SUBMIT ----------------
+  Future<void> submit() async {
+    if (!_validate()) return;
 
-  //   update();
-  // }
+    try {
+      isLoading.value = true;
 
-  // void filterWorkshop(String key) {
-  //   if (selectedCity == null) return;
+      requestModel.firstName = firstNameController.text.trim();
+      requestModel.lastName = lastNameController.text.trim();
+      requestModel.email = emailController.text.trim();
+      requestModel.mobile = mobileController.text.trim();
+      requestModel.password = passwordController.text.trim();
+      requestModel.password2 = confirmPasswordController.text.trim();
+      //requestModel.oem = selectedOem.value?.id;
 
-  //   if (key.isEmpty) {
-  //     selectedCity!.workshops = List.from(selectedCity!.staticWorkshops);
-  //   } else {
-  //     selectedCity!.workshops = selectedCity!.staticWorkshops
-  //         .where((e) => e.name.toLowerCase().contains(key.toLowerCase()))
-  //         .toList();
-  //   }
+      final res = await apiServices.createNewUser(requestModel);
 
-  //   update();
-  // }
+      if (res.status == "success") {
+        Get.snackbar("Success", "User Registered");
+        Get.back();
+      } else {
+       // Get.snackbar("Error", res.message ?? "Failed");
+      }
+    } catch (e) {
+      Get.snackbar("Error", e.toString());
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  bool _validate() {
+    if (firstNameController.text.isEmpty ||
+        emailController.text.isEmpty ||
+        passwordController.text.isEmpty) {
+      Get.snackbar("Error", "Please fill all required fields");
+      return false;
+    }
+
+    if (passwordController.text != confirmPasswordController.text) {
+      Get.snackbar("Error", "Passwords do not match");
+      return false;
+    }
+
+    if (selectedOem.value == null) {
+      Get.snackbar("Error", "Please select category");
+      return false;
+    }
+
+    return true;
+  }
+
+  @override
+  void onClose() {
+    firstNameController.dispose();
+    lastNameController.dispose();
+    emailController.dispose();
+    mobileController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.onClose();
+  }
 }

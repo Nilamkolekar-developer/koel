@@ -1,15 +1,16 @@
-// import 'package:autopeepal/common_widgets/customDropdown.dart';
-// import 'package:autopeepal/common_widgets/ui_helper_widgets.dart';
-// import 'package:autopeepal/logic/controller/auth/registerController.dart';
-// import 'package:autopeepal/routes/routes_string.dart';
-// import 'package:autopeepal/themes/app_colors.dart';
-// import 'package:autopeepal/themes/app_textstyles.dart';
-// import 'package:flutter/material.dart';
-// import 'package:get/get.dart';
+import 'package:autopeepal/common_widgets/customDropdown.dart';
+import 'package:autopeepal/common_widgets/ui_helper_widgets.dart';
+import 'package:autopeepal/logic/controller/auth/registerController.dart';
+import 'package:autopeepal/logic/controller/tickit/createTickitController.dart';
+import 'package:autopeepal/routes/routes_string.dart';
+import 'package:autopeepal/themes/app_colors.dart';
+import 'package:autopeepal/themes/app_textstyles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 // class TickitScreen extends StatelessWidget {
 //   TickitScreen({super.key});
-//   final controller = Get.put(RegistrationController());
+ 
 
 //   @override
 //   Widget build(BuildContext context) {
@@ -209,3 +210,100 @@
 //     );
 //   }
 // }
+class TickitScreen extends StatelessWidget {
+  TickitScreen({super.key});
+
+  final CreateTicketController controller =
+      Get.put(CreateTicketController(isAuthenticated: true));
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      appBar: AppBar(
+        backgroundColor: Colors.teal,
+        title: const Text("Create Ticket"),
+      ),
+
+      body: Obx(() => controller.issueList.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+
+                  /// ISSUE DROPDOWN
+                  DropdownButtonFormField<String>(
+                    value: controller.selectedIssue.value?.issueRelated,
+                    hint: const Text("Select Issue"),
+                    items: controller.issueList
+                        .map((e) => DropdownMenuItem(
+                              value: e.id,
+                              child: Text(e.issueRelated ?? ""),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      final selected = controller.issueList
+                          .firstWhere((e) => e.issueRelated == value);
+                      controller.selectIssue(selected);
+                    },
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  /// RELATED ISSUE
+                  if (controller.otherViewVisible.value)
+                    DropdownButtonFormField<String>(
+                      value:
+                          controller.selectedRelatedIssue.value?.issue,
+                      hint: const Text("Select Related Issue"),
+                      items: controller.relatedIssueList
+                          .map((e) => DropdownMenuItem(
+                                value: e.id,
+                                child: Text(e.issue ?? ""),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        final selected = controller.relatedIssueList
+                            .firstWhere((e) => e.issue == value);
+                        controller.selectRelatedIssue(selected);
+                      },
+                    ),
+
+                  const SizedBox(height: 15),
+
+                  /// COMMENT
+                  TextField(
+                    decoration:
+                        const InputDecoration(labelText: "Comment"),
+                    onChanged: (v) {
+                      controller.createModel.update((val) {
+                        val?.comment = v;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// FILE PICK
+                  ElevatedButton(
+                    onPressed: controller.pickFile,
+                    child: const Text("Attach File"),
+                  ),
+
+                  Obx(() => Text(controller.fileName.value)),
+
+                  const SizedBox(height: 30),
+
+                  /// SUBMIT BUTTON
+                  ElevatedButton(
+                    onPressed: controller.addTicket,
+                    child: const Text("Create Ticket"),
+                  )
+                ],
+              ),
+            )),
+    );
+  }
+}

@@ -87,7 +87,7 @@ class AppDropdownButtonField<T> extends StatelessWidget {
                     fontFamily: "Roboto-regular")),
           ),
           isExpanded: isExpanded!,
-          initialValue: value,
+         // initialValue: value,
           items: items?.map<DropdownMenuItem<T>>((T data) {
             return DropdownMenuItem<T>(
               value: data,

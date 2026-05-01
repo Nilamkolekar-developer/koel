@@ -14,58 +14,7 @@ class CreateTicketController extends GetxController {
   final AuthApiService services = AuthApiService();
   final FilePickerService filePicker = FilePickerService();
 
-  UserModel userRequestModel = UserModel();
-  UserResModel userResModel = UserResModel();
-  // Context-like navigation (optional)
-  BuildContext? context;
-
-  CreateTicketViewModel({required bool isAuthenticated}) {
-    isAuth.value = isAuthenticated;
-
-    regionList.assignAll([
-      RegionModel(name: "NORTH"),
-      RegionModel(name: "SOUTH"),
-      RegionModel(name: "EAST"),
-      RegionModel(name: "WEST"),
-    ]);
-
-    invoiceDate.value = DateTime.now();
-    fileName.value = "";
-
-    otherViewVisible.value = false;
-    apkViewVisible.value = false;
-    dongleViewVisible.value = false;
-
-    getIssueList();
-  }
-
-  @override
-  void onInit() {
-    super.onInit();
-    loadUserData();
-  }
-
-  Future<void> loadUserData() async {
-    try {
-      final userdata =
-          await AndroidOperationsService.getData("UserDetailL_LocalData");
-
-      if (userdata == null || userdata.isEmpty) {
-        return;
-      }
-
-      final userDetail = UserResModel.fromJson(jsonDecode(userdata));
-
-      createModel.value = CreateTicketModel(
-        applicationType: "Windows",
-        workshop: userDetail.profile?.workshopName ?? '',
-        region: userDetail.profile?.workshopRegion,
-      );
-    } catch (e) {
-      print("Error loading user data: $e");
-    }
-  }
-  // ===================== OBSERVABLES =====================
+  /// ===================== STATE =====================
 
   RxBool isAuth = false.obs;
 
@@ -77,33 +26,72 @@ class CreateTicketController extends GetxController {
   RxList<IssueResultModel> issueList = <IssueResultModel>[].obs;
   Rx<IssueResultModel?> selectedIssue = Rx<IssueResultModel?>(null);
 
-  Rx<DateTime> invoiceDate = DateTime.now().obs;
-
   RxList<RelatedIssueResultModel> relatedIssueList =
       <RelatedIssueResultModel>[].obs;
   Rx<RelatedIssueResultModel?> selectedRelatedIssue =
       Rx<RelatedIssueResultModel?>(null);
 
+  Rx<DateTime> invoiceDate = DateTime.now().obs;
+RxBool otherViewVisible = false.obs;
   RxString fileName = "".obs;
 
-  RxBool regionViewVisible = false.obs;
-  RxBool issueViewVisible = false.obs;
-  RxBool relatedIssueViewVisible = false.obs;
-  RxBool otherViewVisible = false.obs;
-  RxBool apkViewVisible = false.obs;
-  RxBool dongleViewVisible = false.obs;
+  /// UI FLAGS
+  RxBool showRelatedIssue = false.obs;
+  RxBool showApkField = false.obs;
+  RxBool showDongleField = false.obs;
 
-  // ===================== REGION =====================
+  /// ===================== CONSTRUCTOR =====================
+
+  CreateTicketController({required bool isAuthenticated}) {
+    isAuth.value = isAuthenticated;
+
+    regionList.assignAll([
+      RegionModel(name: "NORTH"),
+      RegionModel(name: "SOUTH"),
+      RegionModel(name: "EAST"),
+      RegionModel(name: "WEST"),
+    ]);
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadUserData();
+    getIssueList();
+  }
+
+  /// ===================== USER DATA =====================
+
+  Future<void> loadUserData() async {
+    try {
+      final userdata =
+          await AndroidOperationsService.getData("UserDetailL_LocalData");
+
+      if (userdata == null || userdata.isEmpty) return;
+
+      final userDetail = UserResModel.fromJson(jsonDecode(userdata));
+
+      createModel.value = CreateTicketModel(
+        applicationType: "Windows",
+        workshop: userDetail.profile?.workshopName ?? '',
+        region: userDetail.profile?.workshopRegion ?? '',
+      );
+    } catch (e) {
+      debugPrint("User load error: $e");
+    }
+  }
+
+  /// ===================== REGION =====================
 
   void selectRegion(RegionModel model) {
     selectedRegion.value = model;
+
     createModel.update((val) {
       val?.region = model.name;
     });
-    regionViewVisible.value = false;
   }
 
-  // ===================== ISSUE =====================
+  /// ===================== ISSUE =====================
 
   void selectIssue(IssueResultModel model) {
     selectedIssue.value = model;
@@ -112,33 +100,33 @@ class CreateTicketController extends GetxController {
       val?.ticketIssue = model.id;
     });
 
+    /// Fetch related issues
     getRelatedIssueList(model.id ?? '');
 
-    if (model.issueRelated!.contains("Application")) {
-      apkViewVisible.value = true;
-      dongleViewVisible.value = false;
-    } else if (model.issueRelated!.contains("Dongle")) {
-      apkViewVisible.value = false;
-      dongleViewVisible.value = true;
-    }
-
-    createModel.update((val) {
-      val?.ticketIssueChoicesUuid = "";
-      val?.invoiceDate = "";
-      val?.invoiceNo = "";
-      val?.attachment = null;
-      val?.fileName = "";
-      val?.serialNumber = "";
-      val?.comment = "";
-    });
-
+    /// Reset UI
+    showRelatedIssue.value = true;
     selectedRelatedIssue.value = null;
     fileName.value = "";
-    otherViewVisible.value = true;
-    issueViewVisible.value = false;
+
+    /// Safe checks
+    final issueType = model.issueRelated ?? "";
+
+    showApkField.value = issueType.contains("Application");
+    showDongleField.value = issueType.contains("Dongle");
+
+    /// Reset dependent fields
+    createModel.update((val) {
+      val?.ticketIssueChoicesUuid = null;
+      val?.invoiceDate = null;
+      val?.invoiceNo = null;
+      val?.attachment = null;
+      val?.fileName = null;
+      val?.serialNumber = null;
+      val?.comment = null;
+    });
   }
 
-  // ===================== RELATED ISSUE =====================
+  /// ===================== RELATED ISSUE =====================
 
   void selectRelatedIssue(RelatedIssueResultModel model) {
     selectedRelatedIssue.value = model;
@@ -146,70 +134,72 @@ class CreateTicketController extends GetxController {
     createModel.update((val) {
       val?.ticketIssueChoicesUuid = model.id;
     });
-
-    relatedIssueViewVisible.value = false;
   }
 
-  // ===================== FILE PICK =====================
+  /// ===================== FILE PICK =====================
 
   Future<void> pickFile() async {
     try {
       final result = await filePicker.pickFileAsync();
 
-      fileName.value = result!.fileName;
+      if (result == null) return;
+
+      fileName.value = result.fileName;
+
       createModel.update((val) {
         val?.fileName = result.fileName;
         val?.attachment = result.fileContent as Uint8List?;
       });
-        } catch (e) {
-      print("File pick error: $e");
+    } catch (e) {
+      debugPrint("File pick error: $e");
     }
   }
 
-  // ===================== ADD TICKET =====================
+  /// ===================== CREATE TICKET =====================
 
   Future<void> addTicket() async {
     final model = createModel.value;
 
-    if (model.comment == null ||
-        model.comment!.isEmpty ||
-        model.ticketIssueChoicesUuid == null ||
-        model.ticketIssueChoicesUuid!.isEmpty) {
-      Get.snackbar("Alert", "Please enter all details");
+    /// VALIDATION
+    if ((model.comment ?? "").isEmpty ||
+        (model.ticketIssueChoicesUuid ?? "").isEmpty) {
+      Get.snackbar("Alert", "Please fill all required fields");
       return;
     }
 
-    if (!isAuth.value && (model.emailId == null || model.emailId!.isEmpty)) {
+    if (!isAuth.value && (model.emailId ?? "").isEmpty) {
       Get.snackbar("Alert", "Email ID is required");
       return;
     }
 
     try {
-      Get.dialog(const Center(child: CircularProgressIndicator()),
-          barrierDismissible: false);
+      /// LOADER
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
 
+      /// PREPARE DATA
       model.marketPlace = "e69a8d32-8411-4e25-9996-a5a28f435456";
       model.user = App.userId.toString();
       model.levelStatus = "Level1";
-      model.invoiceDate = invoiceDate.value.toIso8601String().split("T").first;
+      model.invoiceDate =
+          invoiceDate.value.toIso8601String().split("T").first;
 
-      CreateTicketResponseModel response;
-
-      if (isAuth.value) {
-        response = await services.createTicket(model);
-      } else {
-        response = await services.createTicketWithoutAuthentication(model);
-      }
+      /// API CALL
+      final response = isAuth.value
+          ? await services.createTicket(model)
+          : await services.createTicketWithoutAuthentication(model);
 
       Get.back(); // close loader
 
+      /// RESPONSE HANDLING
       if (response.message == "success") {
-        if (isAuth.value) {
-          await getTicketList();
-        }
+        await getTicketList();
 
         Get.snackbar("Success", "Ticket Created");
-        Get.back(); // navigate back
+
+        Get.back(); // go back
       } else {
         Get.snackbar("Error", response.message ?? "Failed");
       }
@@ -219,7 +209,7 @@ class CreateTicketController extends GetxController {
     }
   }
 
-  // ===================== API CALLS =====================
+  /// ===================== API =====================
 
   Future<void> getIssueList() async {
     try {
@@ -231,7 +221,7 @@ class CreateTicketController extends GetxController {
         Get.snackbar("Error", res.message ?? "Failed");
       }
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint("Issue API error: $e");
     }
   }
 
@@ -245,25 +235,24 @@ class CreateTicketController extends GetxController {
         Get.snackbar("Error", res.message ?? "Failed");
       }
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint("Related issue API error: $e");
     }
   }
 
-  Future<bool> getTicketList() async {
+  Future<void> getTicketList() async {
     try {
       final res = await services.getTicketList(App.userId);
 
       if (res.message == "success") {
-        AndroidOperationsService.saveData(
-            "GetTicketList", jsonEncode(res.toJson()));
-        return true;
+        await AndroidOperationsService.saveData(
+          "GetTicketList",
+          jsonEncode(res.toJson()),
+        );
       } else {
         Get.snackbar("Error", res.message ?? "Failed");
-        return false;
       }
     } catch (e) {
       Get.snackbar("Error", e.toString());
-      return false;
     }
   }
 }
