@@ -1,224 +1,204 @@
-import 'package:flutter/foundation.dart';
+class TreeListModel {
+  int? id;
+  int? okPageNodeId;
+  int? notOkPageNodeId;
+  String? topic;
+  String? description;
+  String? groupName;
+  double? viewHeight;
+  String? descriptionTextColor;
+  String? descriptionBackgroundColor;
+  bool? pageVisible;
 
-/// ================= TreeListModel =================
-class TreeListModel extends ChangeNotifier {
-  int _id = 0;
-  int get id => _id;
-  set id(int value) {
-    _id = value;
-    notifyListeners();
+  List<GroupListModel>? groupList;
+  List<DecissionModel>? decissionList;
+  List<LastQueCheckModel>? lastQuestionList;
+
+  bool? isCommentBoxVisible;
+  String? comment;
+
+  TreeListModel({
+    this.id,
+    this.okPageNodeId,
+    this.notOkPageNodeId,
+    this.topic,
+    this.description,
+    this.groupName,
+    this.viewHeight,
+    this.descriptionTextColor,
+    this.descriptionBackgroundColor,
+    this.pageVisible,
+    this.groupList,
+    this.decissionList,
+    this.lastQuestionList,
+    this.isCommentBoxVisible,
+    this.comment,
+  });
+
+  factory TreeListModel.fromJson(Map<String, dynamic> json) {
+    return TreeListModel(
+      id: json['id'],
+      okPageNodeId: json['ok_page_node_id'],
+      notOkPageNodeId: json['not_ok_page_node_id'],
+      topic: json['topic'],
+      description: json['description'],
+      groupName: json['group_name'],
+      viewHeight: (json['view_height'] as num?)?.toDouble(),
+      descriptionTextColor: json['description_text_color'],
+      descriptionBackgroundColor: json['description_background_color'],
+      pageVisible: json['page_visible'],
+      groupList: json['group_list'] != null
+          ? List<GroupListModel>.from(
+              json['group_list'].map((x) => GroupListModel.fromJson(x)))
+          : [],
+      decissionList: json['decission_list'] != null
+          ? List<DecissionModel>.from(
+              json['decission_list'].map((x) => DecissionModel.fromJson(x)))
+          : [],
+      lastQuestionList: json['last_question_list'] != null
+          ? List<LastQueCheckModel>.from(
+              json['last_question_list'].map((x) => LastQueCheckModel.fromJson(x)))
+          : [],
+      isCommentBoxVisible: json['is_comment_box_visible'],
+      comment: json['comment'],
+    );
   }
 
-  int _okPageNodeId = 0;
-  int get okPageNodeId => _okPageNodeId;
-  set okPageNodeId(int value) {
-    _okPageNodeId = value;
-    notifyListeners();
-  }
-
-  int _notOkPageNodeId = 0;
-  int get notOkPageNodeId => _notOkPageNodeId;
-  set notOkPageNodeId(int value) {
-    _notOkPageNodeId = value;
-    notifyListeners();
-  }
-
-  String _topic = '';
-  String get topic => _topic;
-  set topic(String value) {
-    _topic = value;
-    notifyListeners();
-  }
-
-  String _description = '';
-  String get description => _description;
-  set description(String value) {
-    _description = value;
-    notifyListeners();
-  }
-
-  String _groupName = '';
-  String get groupName => _groupName;
-  set groupName(String value) {
-    _groupName = value;
-    notifyListeners();
-  }
-
-  double _viewHeight = 0.0;
-  double get viewHeight => _viewHeight;
-  set viewHeight(double value) {
-    _viewHeight = value;
-    notifyListeners();
-  }
-
-  String _descriptionTextColor = '';
-  String get descriptionTextColor => _descriptionTextColor;
-  set descriptionTextColor(String value) {
-    _descriptionTextColor = value;
-    notifyListeners();
-  }
-
-  String _descriptionBackgroundColor = '';
-  String get descriptionBackgroundColor => _descriptionBackgroundColor;
-  set descriptionBackgroundColor(String value) {
-    _descriptionBackgroundColor = value;
-    notifyListeners();
-  }
-
-  bool _pageVisible = false;
-  bool get pageVisible => _pageVisible;
-  set pageVisible(bool value) {
-    _pageVisible = value;
-    notifyListeners();
-  }
-
-  List<GroupListModel> _groupList = [];
-  List<GroupListModel> get groupList => _groupList;
-  set groupList(List<GroupListModel> value) {
-    _groupList = value;
-    notifyListeners();
-  }
-
-  List<DecissionModel> _decissionList = [];
-  List<DecissionModel> get decissionList => _decissionList;
-  set decissionList(List<DecissionModel> value) {
-    _decissionList = value;
-    notifyListeners();
-  }
-
-  List<LastQueCheckModel> _lastQuestionList = [];
-  List<LastQueCheckModel> get lastQuestionList => _lastQuestionList;
-  set lastQuestionList(List<LastQueCheckModel> value) {
-    _lastQuestionList = value;
-    notifyListeners();
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'ok_page_node_id': okPageNodeId,
+      'not_ok_page_node_id': notOkPageNodeId,
+      'topic': topic,
+      'description': description,
+      'group_name': groupName,
+      'view_height': viewHeight,
+      'description_text_color': descriptionTextColor,
+      'description_background_color': descriptionBackgroundColor,
+      'page_visible': pageVisible,
+      'group_list': groupList?.map((x) => x.toJson()).toList(),
+      'decission_list': decissionList?.map((x) => x.toJson()).toList(),
+      'last_question_list': lastQuestionList?.map((x) => x.toJson()).toList(),
+      'is_comment_box_visible': isCommentBoxVisible,
+      'comment': comment,
+    };
   }
 }
+class GroupListModel {
+  String? upperLimit;
+  String? lowerLimit;
+  bool? upperLowerValueVisible;
+  String? unit;
+  String? groupName;
+  String? currentLimit;
+  String? statusColor;
+  String? entryDescription;
 
-/// ================= GroupListModel =================
-class GroupListModel extends ChangeNotifier {
-  String _upperLimit = '';
-  String get upperLimit => _upperLimit;
-  set upperLimit(String value) {
-    _upperLimit = value;
-    notifyListeners();
+  GroupListModel({
+    this.upperLimit,
+    this.lowerLimit,
+    this.upperLowerValueVisible,
+    this.unit,
+    this.groupName,
+    this.currentLimit,
+    this.statusColor,
+    this.entryDescription,
+  });
+
+  factory GroupListModel.fromJson(Map<String, dynamic> json) {
+    return GroupListModel(
+      upperLimit: json['upper_limit'],
+      lowerLimit: json['lower_limit'],
+      upperLowerValueVisible: json['upper_lower_value_visible'],
+      unit: json['unit'],
+      groupName: json['group_name'],
+      currentLimit: _validateNumber(json['current_limit']),
+      statusColor: json['status_color'],
+      entryDescription: json['entry_description'],
+    );
   }
 
-  String _lowerLimit = '';
-  String get lowerLimit => _lowerLimit;
-  set lowerLimit(String value) {
-    _lowerLimit = value;
-    notifyListeners();
+  Map<String, dynamic> toJson() {
+    return {
+      'upper_limit': upperLimit,
+      'lower_limit': lowerLimit,
+      'upper_lower_value_visible': upperLowerValueVisible,
+      'unit': unit,
+      'group_name': groupName,
+      'current_limit': currentLimit,
+      'status_color': statusColor,
+      'entry_description': entryDescription,
+    };
   }
 
-  bool _upperLowerValueVisible = false;
-  bool get upperLowerValueVisible => _upperLowerValueVisible;
-  set upperLowerValueVisible(bool value) {
-    _upperLowerValueVisible = value;
-    notifyListeners();
-  }
-
-  String _unit = '';
-  String get unit => _unit;
-  set unit(String value) {
-    _unit = value;
-    notifyListeners();
-  }
-
-  String _groupName = '';
-  String get groupName => _groupName;
-  set groupName(String value) {
-    _groupName = value;
-    notifyListeners();
-  }
-
-  String _currentLimit = '';
-  String get currentLimit => _currentLimit;
-  set currentLimit(String value) {
-    if (_isDigitsOnly(value)) {
-      _currentLimit = value;
-    } else {
-      _currentLimit = '';
-    }
-    notifyListeners();
-  }
-
-  String _statusColor = '#000000';
-  String get statusColor => _statusColor;
-  set statusColor(String value) {
-    _statusColor = value;
-    notifyListeners();
-  }
-
-  String _entryDescription = '';
-  String get entryDescription => _entryDescription;
-  set entryDescription(String value) {
-    _entryDescription = value;
-    notifyListeners();
-  }
-
-  bool _isDigitsOnly(String str) {
-    return RegExp(r'^[0-9]+$').hasMatch(str);
+  static String? _validateNumber(String? value) {
+    if (value == null) return null;
+    return RegExp(r'^\d+$').hasMatch(value) ? value : "";
   }
 }
+class LastQueCheckModel {
+  bool? isCheck;
+  String? describe;
+  int? id;
 
-/// ================= LastQueCheckModel =================
-class LastQueCheckModel extends ChangeNotifier {
-  bool _isCheck = false;
-  bool get isCheck => _isCheck;
-  set isCheck(bool value) {
-    _isCheck = value;
-    notifyListeners();
+  LastQueCheckModel({
+    this.isCheck,
+    this.describe,
+    this.id,
+  });
+
+  factory LastQueCheckModel.fromJson(Map<String, dynamic> json) {
+    return LastQueCheckModel(
+      isCheck: json['isCheck'],
+      describe: json['describe'],
+      id: json['id'],
+    );
   }
 
-  String _describe = '';
-  String get describe => _describe;
-  set describe(String value) {
-    _describe = value;
-    notifyListeners();
-  }
-
-  int _id = 0;
-  int get id => _id;
-  set id(int value) {
-    _id = value;
-    notifyListeners();
+  Map<String, dynamic> toJson() {
+    return {
+      'isCheck': isCheck,
+      'describe': describe,
+      'id': id,
+    };
   }
 }
+class DecissionModel {
+  bool? isCheck;
+  String? textValue;
+  String? newTextValue;
+  int? nextNode;
+  String? type;
+  int? id;
 
-/// ================= DecissionModel =================
-class DecissionModel extends ChangeNotifier {
-  bool _isCheck = false;
-  bool get isCheck => _isCheck;
-  set isCheck(bool value) {
-    _isCheck = value;
-    notifyListeners();
+  DecissionModel({
+    this.isCheck,
+    this.textValue,
+    this.newTextValue,
+    this.nextNode,
+    this.type,
+    this.id,
+  });
+
+  factory DecissionModel.fromJson(Map<String, dynamic> json) {
+    return DecissionModel(
+      isCheck: json['isCheck'],
+      textValue: json['text_value'],
+      newTextValue: json['new_text_value'],
+      nextNode: json['next_node'],
+      type: json['type'],
+      id: json['id'],
+    );
   }
 
-  String _textValue = '';
-  String get textValue => _textValue;
-  set textValue(String value) {
-    _textValue = value;
-    notifyListeners();
-  }
-
-  int _nextNode = 0;
-  int get nextNode => _nextNode;
-  set nextNode(int value) {
-    _nextNode = value;
-    notifyListeners();
-  }
-
-  String _type = '';
-  String get type => _type;
-  set type(String value) {
-    _type = value;
-    notifyListeners();
-  }
-
-  int _id = 0;
-  int get id => _id;
-  set id(int value) {
-    _id = value;
-    notifyListeners();
+  Map<String, dynamic> toJson() {
+    return {
+      'isCheck': isCheck,
+      'text_value': textValue,
+      'new_text_value': newTextValue,
+      'next_node': nextNode,
+      'type': type,
+      'id': id,
+    };
   }
 }

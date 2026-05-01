@@ -177,10 +177,19 @@ class Token {
     this.access,
   });
 
+  // JSON -> Object
   factory Token.fromJson(Map<String, dynamic> json) {
     return Token(
       refresh: json['refresh'],
       access: json['access'],
     );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'refresh': refresh,
+      'access': access,
+    };
   }
 }

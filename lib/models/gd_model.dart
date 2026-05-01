@@ -727,3 +727,106 @@ class Info {
         'remedial_actions': remedialActions,
       };
 }
+
+
+class GdCommentModel {
+  List<Gd>? gd;
+
+  GdCommentModel({
+    this.gd,
+  });
+
+  // JSON -> Object
+  factory GdCommentModel.fromJson(Map<String, dynamic> json) {
+    return GdCommentModel(
+      gd: json['gd'] != null
+          ? (json['gd'] as List).map((i) => Gd.fromJson(i)).toList()
+          : null,
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'gd': gd?.map((v) => v.toJson()).toList(),
+    };
+  }
+}
+
+class GdModelGd {
+  int? count;
+  dynamic next;
+  dynamic previous;
+  List<ResultGD>? results;
+
+  GdModelGd({
+    this.count,
+    this.next,
+    this.previous,
+    this.results,
+  });
+
+  // Factory constructor to create an instance from a Map (JSON)
+  factory GdModelGd.fromJson(Map<String, dynamic> json) {
+    return GdModelGd(
+      count: json['count'] as int?,
+      next: json['next'],
+      previous: json['previous'],
+      // Mapping the nested list of ResultGD objects
+      results: json['results'] != null
+          ? (json['results'] as List)
+              .map((i) => ResultGD.fromJson(i))
+              .toList()
+          : null,
+    );
+  }
+
+  // Method to convert the instance back to a Map (JSON)
+  Map<String, dynamic> toJson() {
+    return {
+      'count': count,
+      'next': next,
+      'previous': previous,
+      'results': results?.map((i) => i.toJson()).toList(),
+    };
+  }
+}
+
+
+class Gd {
+  String? name;
+  String? status;
+  String? comment;
+  String? description;
+  String? created;
+
+  Gd({
+    this.name,
+    this.status,
+    this.comment,
+    this.description,
+    this.created,
+  });
+
+  // JSON -> Object
+  factory Gd.fromJson(Map<String, dynamic> json) {
+    return Gd(
+      name: json['name'],
+      status: json['status'],
+      comment: json['comment'],
+      description: json['description'],
+      created: json['created'],
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'status': status,
+      'comment': comment,
+      'description': description,
+      'created': created,
+    };
+  }
+}

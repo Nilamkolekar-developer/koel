@@ -4,920 +4,82 @@ import 'dart:io';
 import 'package:autopeepal/AppPreferences/app_areferences.dart';
 import 'package:autopeepal/api/app_envirments.dart';
 import 'package:autopeepal/api/app_urls.dart';
+import 'package:autopeepal/app.dart';
 import 'package:autopeepal/models/actuatorTest_model.dart';
 import 'package:autopeepal/models/all_models.dart';
+import 'package:autopeepal/models/categoryRoot_model.dart';
+import 'package:autopeepal/models/changePassword_model.dart';
 import 'package:autopeepal/models/checkJobCard_model.dart';
-import 'package:autopeepal/models/doipConfigFile_model.dart';
+import 'package:autopeepal/models/createTickit_model.dart';
+import 'package:autopeepal/models/createUserReq_model.dart';
+import 'package:autopeepal/models/creteSessionReq_model.dart';
 import 'package:autopeepal/models/dtc_model.dart';
+import 'package:autopeepal/models/envSet_model.dart';
 import 'package:autopeepal/models/expert_model.dart';
-import 'package:autopeepal/models/flashRecord_model.dart';
 import 'package:autopeepal/models/freezeFrame_model.dart';
 import 'package:autopeepal/models/gd_model.dart';
+import 'package:autopeepal/models/getApiRespomnse_model.dart';
 import 'package:autopeepal/models/iorTest_model.dart';
 import 'package:autopeepal/models/jobCard_model.dart';
-import 'package:autopeepal/models/listNumber_model.dart';
+import 'package:autopeepal/models/latestAppVersion_model.dart';
+import 'package:autopeepal/models/latestDB_model.dart';
 import 'package:autopeepal/models/liveParameter_model.dart';
+import 'package:autopeepal/models/modelList_model.dart';
+import 'package:autopeepal/models/notification_model.dart';
 import 'package:autopeepal/models/oem_model.dart';
-import 'package:autopeepal/models/pidLiveRecord_model.dart';
+import 'package:autopeepal/models/parameter_model.dart';
+import 'package:autopeepal/models/partReplacementAnalyze_model.dart';
 import 'package:autopeepal/models/registerDongle_model.dart';
 import 'package:autopeepal/models/remoteJobCard_model.dart';
-import 'package:autopeepal/models/signIn_model.dart';
+import 'package:autopeepal/models/sessionList_model.dart';
+import 'package:autopeepal/models/firmwareUpdate_model.dart';
+import 'package:autopeepal/models/srSearchReq_model.dart';
+import 'package:autopeepal/models/srSearchResp_model.dart';
+import 'package:autopeepal/models/tickitList_model.dart';
 import 'package:autopeepal/models/unlockecu_model.dart';
-import 'package:autopeepal/models/updateFirmware_model.dart';
-import 'package:autopeepal/routes/routes_string.dart';
+import 'package:autopeepal/models/uploadEngineHr_model.dart';
+import 'package:autopeepal/models/variant_model.dart';
+import 'package:autopeepal/services/androidOperationservice.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/http.dart' as client;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart';
 import '../models/user_model.dart';
+import 'package:path/path.dart' as p;
 
 class AuthApiService {
+  late HttpClient client;
+
+  ApiServices({int timeout = 100}) {
+    // 1. Replicating HttpClientHandler with certificate bypass
+    client = HttpClient();
+
+    // ServerCertificateCustomValidationCallback equivalent
+    client.badCertificateCallback =
+        (X509Certificate cert, String host, int port) => true;
+
+    // 2. Setting the timeout
+    client.connectionTimeout = Duration(seconds: timeout);
+  }
+
   static Future<UserResModel> login(UserModel model) async {
-    final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.login);
+    // Initialize with a default state
     UserResModel loginResponse = UserResModel();
+    final url = Uri.parse("${AppEnvironment.baseUrl}${AppURLs.login}");
 
     try {
+      // 1. Check Connectivity
+      var connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.none)) {
+        loginResponse.message = "Check internet connection.";
+        return loginResponse;
+      }
+
+      // 2. Prepare Request
       final jsonBody = jsonEncode(model.toJson());
 
-      print("[LOGIN] Sending request to: $url");
-      print("[LOGIN] Request Body: $jsonBody");
-
-      final response = await http
-          .post(
-            url,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonBody,
-          )
-          .timeout(const Duration(seconds: 10)); // important
-
-      print("[LOGIN] Status: ${response.statusCode}");
-      print("[LOGIN] Body: ${response.body}");
-
-      if (response.statusCode == 200) {
-        final responseJson = jsonDecode(response.body);
-
-        loginResponse = UserResModel.fromJson(responseJson);
-
-        // ✅ SAVE TOKENS
-        if (loginResponse.token != null) {
-          await AppPreferences.saveTokens(
-            accessToken: loginResponse.token?.access ?? '',
-            refreshToken: loginResponse.token?.refresh ?? '',
-          );
-        }
-
-        // ✅ SAVE USER
-        await AppPreferences.saveUser(
-          userId: loginResponse.userId.toString(),
-          name:
-              "${loginResponse.firstName ?? ''} ${loginResponse.lastName ?? ''}",
-          email: loginResponse.user ?? '',
-        );
-
-        // 🔥 🔥 ADD THIS (VERY IMPORTANT)
-        final oemId = responseJson['profile']?['oem']?['id'];
-
-        if (oemId != null) {
-          await AppPreferences.setInt("oemId", oemId);
-          print("[LOGIN] OEM ID saved: $oemId");
-        } else {
-          print("[LOGIN ERROR] OEM ID not found in response");
-        }
-
-        loginResponse.message = "success";
-      } else if (response.statusCode == 401) {
-        loginResponse.message = "Invalid username or password";
-      } else if (response.statusCode == 403) {
-        loginResponse.message = "Device not authorized";
-      } else {
-        loginResponse.message = "Login failed (${response.statusCode})";
-      }
-    } on SocketException {
-      /// 🔹 INTERNET OFF / SERVER UNREACHABLE
-      print("[LOGIN] Network unreachable. Switching to offline login.");
-      loginResponse.message = "network_error";
-    } on TimeoutException {
-      /// 🔹 SERVER TIMEOUT
-      print("[LOGIN] Server timeout. Switching to offline login.");
-      loginResponse.message = "timeout";
-    } catch (e, st) {
-      print("[LOGIN] Unknown error: $e");
-      print(st);
-
-      loginResponse.message = "exception";
-    }
-
-    return loginResponse;
-  }
-
-  static Future<AllModelsModel> getAllModels([int? oemId]) async {
-    final allModels = AllModelsModel();
-
-    try {
-      final connectivity = await Connectivity().checkConnectivity();
-      if (connectivity == ConnectivityResult.none) {
-        allModels.message = "Please check internet connection.";
-        return allModels;
-      }
-
-      // Try to get from parameter OR local storage
-      oemId ??= await AppPreferences.getInt("oemId");
-
-      // ❗ CRITICAL FIX
-      if (oemId == null) {
-        allModels.message = "OEM ID is missing. Please login again.";
-        print("[ERROR] OEM ID is NULL. Skipping API call.");
-        return allModels;
-      }
-
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.allModels(oemId));
-
-      final response = await http.get(
-        url,
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      print("""
-GetAllModels API
-URL: $url
-RESPONSE:
-${response.body}
-""");
-
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        return AllModelsModel.fromJson(jsonData)..message = "success";
-      } else {
-        allModels.message =
-            "${response.statusCode}\n${_deserializeError(response.body)}";
-      }
-    } catch (e) {
-      allModels.message = "Exception in getAllModels(): $e";
-    }
-
-    return allModels;
-  }
-
-  static String _deserializeError(String data) {
-    try {
-      final jsonData = jsonDecode(data);
-      if (jsonData['error'] != null) return jsonData['error'].toString();
-      if (jsonData['detail'] != null) return jsonData['detail'].toString();
-    } catch (e) {
-      return data;
-    }
-    return data;
-  }
-
-  static Future<Map<bool, String>> getWorkShopData() async {
-    final Map<bool, String> retResponse = {};
-    try {
-      final response = await http
-          .get(Uri.parse(AppEnvironment.baseUrl + AppURLs.workShopData));
-
-      if (response.statusCode == 200) {
-        retResponse[true] = response.body;
-      } else {
-        // You can implement deserializeErrorModel in Dart if needed
-        retResponse[false] = '${response.statusCode}\n${response.body}';
-      }
-    } catch (e) {
-      retResponse[false] = 'Exception @ApiService.getWorkShopData(): $e';
-    }
-
-    return retResponse;
-  }
-
-  static Future<FirmwareUpdateModel> getLatestFirmwareVersion(
-      String? partNumber) async {
-    FirmwareUpdateModel results = FirmwareUpdateModel(); // default empty object
-    try {
-      final url = Uri.parse(AppURLs.getLatestFirmwareVersion(partNumber));
-      final response = await http.get(url);
-
-      print(
-          'GET Latest Firmware Version API:\nURL: $url\nRESPONSE: ${response.body}');
-
-      if (response.statusCode == 200) {
-        results = FirmwareUpdateModel.fromJson(jsonDecode(response.body));
-        results.message = "success";
-      } else {
-        results.message = 'Error ${response.statusCode}: ${response.body}';
-      }
-    } catch (e) {
-      results.message = e.toString();
-    }
-
-    return results;
-  }
-
-  static Future<FirmwareUpdateResponseModel> updateFirmware(
-      FirmwareUpdateModel model, String baseUrl) async {
-    final url = Uri.parse('$baseUrl/devices/fotax/latest/firmware');
-    FirmwareUpdateResponseModel responseModel = FirmwareUpdateResponseModel();
-
-    try {
-      // Check network connectivity
-      var connectivityResult = await Connectivity().checkConnectivity();
-      bool isReachable = connectivityResult != ConnectivityResult.none;
-
-      if (isReachable) {
-        final jsonBody = jsonEncode(model.toJson());
-        final response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonBody,
-        );
-
-        print(
-            "POST $url\nRequest Body:\n$jsonBody\nResponse:\n${response.body}");
-
-        if (response.statusCode == 200) {
-          responseModel =
-              FirmwareUpdateResponseModel.fromJson(jsonDecode(response.body));
-        } else {
-          responseModel.error = 'HTTP ${response.statusCode}';
-        }
-      } else {
-        responseModel.error = 'No internet connection';
-      }
-    } catch (e) {
-      responseModel.error = 'Exception: $e';
-    }
-
-    return responseModel;
-  }
-
-  static Future<bool> existPasswordCheck(UserModel model) async {
-    try {
-      final url =
-          Uri.parse(AppEnvironment.baseUrl + AppURLs.existPasswordCheck);
-
-      // Convert model to JSON string
-      final body = jsonEncode(model.toJson());
-
-      // Make POST request
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: body,
-      );
-
-      print("""
-EXIST PASSWORD CHECK
-URL: $url
-REQUEST: $body
-RESPONSE: ${response.body}
-STATUS CODE: ${response.statusCode}
-""");
-
-      // Return true if HTTP 200, else false
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e, stackTrace) {
-      // Replace this with your own error handling / toast / dialog
-      print("Error in existPasswordCheck: $e\n$stackTrace");
-      return false;
-    }
-  }
-
-  /// Changes the user's password using the JWT token for authorization
-  static Future<bool> changePassword(ChangePassword model, String token) async {
-    try {
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.changePassword);
-
-      // Convert model to JSON
-      final body = jsonEncode(model.toJson());
-
-      // Make POST request with JWT authorization header
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $token',
-        },
-        body: body,
-      );
-
-      print("""
-CHANGE PASSWORD
-URL: $url
-REQUEST: $body
-RESPONSE: ${response.body}
-STATUS CODE: ${response.statusCode}
-""");
-
-      // Return true if HTTP 200 OK, else false
-      return response.statusCode == 200;
-    } catch (e, stackTrace) {
-      // Replace this with your own error handling / toast / dialog
-      print("Error in changePassword: $e\n$stackTrace");
-      return false;
-    }
-  }
-
-  /// Fetches a new Job Card number from the server
-  static Future<AutoNewJobCard> getJobCardNumber() async {
-    AutoNewJobCard jobCardNumber = AutoNewJobCard();
-    final token = await AppPreferences.getAccessToken();
-    try {
-      // Check network access here (replace with your own connectivity check)
-      // For example: using connectivity_plus package
-      bool hasInternet = true; // Replace with actual check
-      // ignore: dead_code
-      if (!hasInternet) {
-        jobCardNumber.message = "Please check internet connection.";
-        return jobCardNumber;
-      }
-
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.getJobCardNumber);
-      final response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token!,
-        },
-      );
-
-      print("""
-GET JOB CARD NUMBER
-URL: $url
-RESPONSE: ${response.body}
-STATUS CODE: ${response.statusCode}
-""");
-
-      if (response.statusCode == 200) {
-        jobCardNumber = AutoNewJobCard.fromJson(jsonDecode(response.body));
-        jobCardNumber.message = "success";
-      } else {
-        // If the server returns an error
-        jobCardNumber.message =
-            "${response.statusCode}\n${response.body}"; // You can parse error JSON if needed
-      }
-    } catch (e, stackTrace) {
-      jobCardNumber.message =
-          "Exception in getJobCardNumber(): $e\n$stackTrace";
-    }
-
-    return jobCardNumber;
-  }
-
-  Future<OemModel> getAllOem() async {
-    OemModel oemModel = OemModel(results: []);
-
-    try {
-      // Check internet connectivity
-      var connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        oemModel.message = "Please check internet connection.";
-        return oemModel;
-      }
-
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.allOem);
-      final response = await http.get(url);
-
-      final responseData = response.body;
-      print("URL: $url\nRESPONSE: $responseData");
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        oemModel = OemModel.fromJson(jsonDecode(responseData));
-        oemModel.message = "success";
-      } else {
-        oemModel.message =
-            "${response.statusCode}\n${deserializeErrorModel(responseData)}";
-      }
-    } catch (ex, stackTrace) {
-      oemModel.message =
-          "Exception in ApiServices.getAllOem(): $ex\n$stackTrace";
-    }
-
-    return oemModel;
-  }
-
-  Future<List<JobCardModel>?> getJobCard(String filename) async {
-    print("🔹 getJobCard started for file: $filename");
-
-    final token = await AppPreferences.getAccessToken();
-    print("🔹 Access token retrieved: $token");
-
-    final prefs = await SharedPreferences.getInstance();
-    print("🔹 SharedPreferences instance obtained");
-
-    List<JobCardModel>? jobCards;
-
-    try {
-      print("🔹 Trying to fetch JobCards from API...");
-      final response = await http.get(
-        Uri.parse(AppEnvironment.baseUrl + AppURLs.getJobCard),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $token',
-        },
-      );
-
-      print("🔹 API call completed → Status Code: ${response.statusCode}");
-      final data = response.body;
-      print("🔹 API Response Body: $data");
-
-      if (response.statusCode == 401) {
-        print("❌ Unauthorized: redirecting to login");
-        Get.offAll(Routes.loginScreen);
-        return null;
-      } else if (response.statusCode == 200) {
-        final decoded = jsonDecode(data) as List;
-        print("🔹 Decoded JSON length: ${decoded.length}");
-
-        jobCards = decoded.map((e) => JobCardModel.fromJson(e)).toList();
-        print("🔹 Total JobCards parsed: ${jobCards.length}");
-
-        await prefs.setString('JsonList', data);
-        print("🔹 Data saved to SharedPreferences under key 'JsonList'");
-
-        return jobCards;
-      } else {
-        final detail = jsonDecode(data)['detail'];
-        print("❌ API Error → Detail: $detail");
-        return null;
-      }
-    } catch (e) {
-      print("⚠️ API call failed (offline?) → Exception: $e");
-      print("🔹 Trying to load JobCards from local storage...");
-
-      final jsonListData = prefs.getString('JsonList');
-      if (jsonListData != null) {
-        final decoded = jsonDecode(jsonListData) as List;
-        print("🔹 Decoded local JSON length: ${decoded.length}");
-
-        jobCards = decoded.map((e) => JobCardModel.fromJson(e)).toList();
-        print(
-            "🔹 Total JobCards loaded from local storage: ${jobCards.length}");
-        return jobCards;
-      } else {
-        print("❌ No local data found");
-        return null;
-      }
-    }
-  }
-
-  Future<CheckJobCardModel?> checkJobCard(String jobCardNumber) async {
-    try {
-      final username = 'uptime_user';
-      final password = 'data1234';
-      final authHeader =
-          'Basic ' + base64Encode(utf8.encode('$username:$password'));
-
-      final url = Uri.parse(
-          "https://udaanapprovals.vecv.net/sap/opu/odata/sap/ZODATA_FIR_SRV/ES_HEADER(JobCrd='$jobCardNumber')?\$format=json");
-
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return CheckJobCardModel.fromJson(data);
-      } else {
-        print('Error: ${response.statusCode} ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      print('Exception: $e');
-      return null;
-    }
-  }
-
-  Future<List<JobcardModelSecond>?> checkJobCardSecondAPI(
-      String jobCardNumber) async {
-    try {
-      // Construct the URL with credentials
-      final url = Uri.parse(
-          "http://eos.eicher.in:8082/Api/Ticket/$jobCardNumber?Username=pbhujbal@vecv.in&password=eicher@123");
-
-      // Make the GET request
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        // Parse JSON into a list of JobcardModelSecond
-        List<dynamic> data = json.decode(response.body);
-        List<JobcardModelSecond> jobCards =
-            data.map((e) => JobcardModelSecond.fromJson(e)).toList();
-        return jobCards;
-      } else {
-        print('Error: ${response.statusCode} - ${response.reasonPhrase}');
-        return null;
-      }
-    } catch (e, stackTrace) {
-      print('Exception: $e');
-      print(stackTrace);
-      return null;
-    }
-  }
-
-  // Future<MainResultClass?> sendJobCard(
-  //     SendJobcardData model) async {
-  //     final token = await AppPreferences.getAccessToken();
-  //   try {
-  //     final mainResultClass = MainResultClass();
-
-  //     // Check internet connectivity if needed using connectivity_plus
-  //     var connectivityResult = await (Connectivity().checkConnectivity());
-  //     if (connectivityResult == ConnectivityResult.none) return mainResultClass;
-
-  //     final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.sendJobCard);
-
-  //     // Convert model to JSON
-  //     final body = jsonEncode(model.toJson());
-
-  //     // Make POST request with JWT token
-  //     final response = await http.post(
-  //       url,
-  //      headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': 'JWT $token',
-  //       },
-  //       body: body,
-  //     );
-
-  //     if (response.statusCode == 400) {
-  //       // Deserialize into SameJobcard when BadRequest
-  //       final sameJobcard = SameJobcard.fromJson(jsonDecode(response.body));
-  //       mainResultClass.sameJobcard = sameJobcard;
-  //       mainResultClass.createJobcard = null;
-  //     } else if (response.statusCode == 201) {
-  //       // Deserialize into JobCardModel for success
-  //       final jobCard = JobCardModel.fromJson(jsonDecode(response.body));
-  //       mainResultClass.sameJobcard = null;
-  //       mainResultClass.createJobcard = jobCard;
-  //     } else {
-  //       print('Unexpected status code: ${response.statusCode}');
-  //     }
-
-  //     return mainResultClass;
-  //   } catch (e, stackTrace) {
-  //     print('Exception in sendJobCard: $e');
-  //     print(stackTrace);
-  //     return null;
-  //   }
-  // }
-
-  Future<MainResultClass?> sendJobCard(SendJobcardData model) async {
-    final token = await AppPreferences.getAccessToken();
-    try {
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.sendJobCard);
-      print("🌐 API URL: $url");
-
-      final jsonBody = jsonEncode(model.toJson());
-
-      print("📤 Sending JobCard Data:");
-      print(jsonBody);
-
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $token',
-        },
-        body: jsonBody,
-      );
-
-      print("📥 Status Code: ${response.statusCode}");
-      print("📥 Response Body: ${response.body}");
-
-      MainResultClass result = MainResultClass();
-
-      if (response.statusCode == 400) {
-        /// Same JobCard case
-        final data = jsonDecode(response.body);
-        result.sameJobcard = SameJobcard.fromJson(data);
-        result.createJobcard = null;
-      } else {
-        /// Success case
-        final data = jsonDecode(response.body);
-        result.sameJobcard = null;
-        result.createJobcard = JobCardModel.fromJson(data);
-      }
-
-      return result;
-    } catch (e, stackTrace) {
-      print("❌ Exception in sendJobCard: $e");
-      print("📍 StackTrace: $stackTrace");
-      return null;
-    }
-  }
-
-  Future<List<ExistJobCardResult>?> getExistJobCard(
-      String token, String jobCardNumber) async {
-    try {
-      final url = Uri.parse(
-          AppEnvironment.baseUrl + AppURLs.existingJobCard(jobCardNumber));
-
-      final response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $token', // pass your token here
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final existJobCard = ExistJobCard.fromJson(data);
-        return existJobCard.results;
-      } else {
-        print('Error: ${response.statusCode}');
-        print('Response: ${response.body}');
-        return null;
-      }
-    } catch (e, stackTrace) {
-      print('Exception: $e');
-      print(stackTrace);
-      return null;
-    }
-  }
-
-  Future<Result?> postJobCardSession(PostJobCardSession postJobCardSession,
-      String token, String jobCardId) async {
-    try {
-      final url = Uri.parse(
-          AppEnvironment.baseUrl + AppURLs.PostJobCardSession(jobCardId));
-
-      // Convert the object to JSON
-      final body = jsonEncode(postJobCardSession.toJson());
-
-      // Make the POST request with JWT authorization
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $token',
-        },
-        body: body,
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // Deserialize response to Result object
-        return Result.fromJson(jsonDecode(response.body));
-      } else {
-        print('Error: ${response.statusCode} - ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      print('Exception: $e');
-      return null;
-    }
-  }
-
-  Future<OnlineExpertModel?> getOnlineExpert(String token) async {
-    try {
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.getOnlineExpert);
-
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'JWT $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return OnlineExpertModel.fromJson(data);
-      } else {
-        print('Error: ${response.statusCode} ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      print('Exception in getOnlineExpert: $e');
-      return null;
-    }
-  }
-
-  Future<MainResponseModel?> createRemoteJobCard(
-      RemoteJobCardModel model, String sessionId, String token) async {
-    try {
-      final url = Uri.parse(
-          AppEnvironment.baseUrl + AppURLs.createRemoteJobCard(sessionId));
-
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $token',
-        },
-        body: jsonEncode(model.toJson()),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 400) {
-        // Bad request -> Already exists
-        return MainResponseModel(
-          status: "Already Exist",
-          badRequestResponseModel: BadRequestResponseModel.fromJson(data),
-        );
-      } else if (response.statusCode == 200 || response.statusCode == 201) {
-        // New job card created
-        return MainResponseModel(
-          status: "New",
-          newRequestResponseModel: ResponseJobCardModel.fromJson(data),
-        );
-      } else {
-        // Other errors
-        print("Error: ${response.statusCode} - ${response.body}");
-        return null;
-      }
-    } catch (e) {
-      print("Exception: $e");
-      return null;
-    }
-  }
-
-  Future<ResponseJobCardModel?> updateRemoteJobCard(RemoteJobCardModel model,
-      String sessionId, String remoteSessionId, String jwtToken) async {
-    try {
-      final String url = AppEnvironment.baseUrl +
-          AppURLs.updateRemoteJobCard(sessionId, remoteSessionId);
-
-      // Serialize model to JSON
-      final String jsonBody = jsonEncode(model.toJson());
-
-      // Make HTTP PUT request with JWT Authorization
-      final response = await http.put(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $jwtToken',
-        },
-        body: jsonBody,
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // Deserialize JSON response to ResponseJobCardModel
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return ResponseJobCardModel.fromJson(data);
-      } else {
-        // Handle errors
-        print('Error: ${response.statusCode}');
-        print('Response: ${response.body}');
-        return null;
-      }
-    } catch (e, stackTrace) {
-      print('Exception: $e');
-      print(stackTrace);
-      return null;
-    }
-  }
-
-  Future<ResponseRoot?> getRemoteSession(
-      String getRemoteSessionId, String jwtToken) async {
-    try {
-      final String url =
-          AppEnvironment.baseUrl + AppURLs.getRemoteSession(getRemoteSessionId);
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $jwtToken',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return ResponseRoot.fromJson(data);
-      } else {
-        print('Error: ${response.statusCode}');
-        print('Response: ${response.body}');
-        return null;
-      }
-    } catch (e, stackTrace) {
-      print('Exception: $e');
-      print(stackTrace);
-      return null;
-    }
-  }
-
-  Future<ResponseRoot?> getExpertRequestList(
-      String expertUser, String jwtToken) async {
-    try {
-      final String url =
-          AppEnvironment.baseUrl + AppURLs.expertUser(expertUser);
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $jwtToken',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return ResponseRoot.fromJson(data);
-      } else {
-        print('Error: ${response.statusCode}');
-        print('Response: ${response.body}');
-        return null;
-      }
-    } catch (e, stackTrace) {
-      print('Exception: $e');
-      print(stackTrace);
-      return null;
-    }
-  }
-
-  Future<ResponseJobCardModel?> acceptRemoteRequest(
-    ResponseJobCardModel acceptOrDeclineModel,
-    String jobCardRequestId,
-    String remoteSessionId,
-    String jwtToken,
-  ) async {
-    try {
-      final String url = AppEnvironment.baseUrl +
-          AppURLs.acceptRemoteRequest(jobCardRequestId, remoteSessionId);
-
-      final body = jsonEncode(acceptOrDeclineModel.toJson());
-
-      final response = await http.put(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $jwtToken',
-        },
-        body: body,
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return ResponseJobCardModel.fromJson(data);
-      } else {
-        print('Error: ${response.statusCode}');
-        print('Response: ${response.body}');
-        return null;
-      }
-    } catch (e, stackTrace) {
-      print('Exception: $e');
-      print(stackTrace);
-      return null;
-    }
-  }
-
-  Future<String?> getDongleList(String jwtToken) async {
-    try {
-      final String url = AppEnvironment.baseUrl + AppURLs.getDongleList;
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'JWT $jwtToken',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        // Return the raw JSON string
-        return response.body;
-      } else {
-        print('Error fetching dongle list: ${response.statusCode}');
-        print('Response body: ${response.body}');
-        return null;
-      }
-    } catch (e, stackTrace) {
-      print('Exception: $e');
-      print(stackTrace);
-      return null;
-    }
-  }
-
-  Future<Map<bool, String>> registerUser(SigninModel model) async {
-    Map<bool, String> retResponse = {};
-
-    try {
-      // Check internet connectivity
-      var connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        retResponse[false] = "Please connect to internet.";
-        return retResponse;
-      }
-
-      // Serialize model to JSON
-      final jsonBody = jsonEncode(model.toJson());
-
-      // Prepare POST request
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.registerUser);
-
+      // 3. Post Request with Timeout
       final response = await http
           .post(
             url,
@@ -926,61 +88,2699 @@ STATUS CODE: ${response.statusCode}
           )
           .timeout(const Duration(seconds: 10));
 
-      final responseData = response.body;
-      print("URL: $url\nREQUEST: $jsonBody\nRESPONSE: $responseData");
+      final String data = response.body;
 
+      // 4. Handle Response
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        retResponse[true] = "User Created Successfully";
+        final Map<String, dynamic> responseJson = jsonDecode(data);
+        loginResponse = UserResModel.fromJson(responseJson);
+
+        // ✅ SAVE TOKENS
+        if (loginResponse.token != null) {
+          await AppPreferences.setString(
+              "accessToken", loginResponse.token?.access ?? '');
+          await AppPreferences.setString(
+              "refreshToken", loginResponse.token?.refresh ?? '');
+        }
+
+        // ✅ SAVE USER INFO
+        await AppPreferences.saveUser(
+          userId: loginResponse.userId.toString(),
+          name:
+              "${loginResponse.firstName ?? ''} ${loginResponse.lastName ?? ''}"
+                  .trim(),
+          email: loginResponse.user ?? '',
+        );
+
+        // ✅ SAVE OEM ID (Safe Nested Extraction)
+        final profile = responseJson['profile'];
+        if (profile != null && profile['oem'] != null) {
+          final oemId = profile['oem']['id'];
+          if (oemId != null) {
+            await AppPreferences.setInt("oemId", oemId);
+          }
+        }
+
+        loginResponse.message = "success";
       } else {
-        retResponse[false] =
-            "${response.statusCode}\n${deserializeErrorModel(responseData)}";
+        loginResponse.message =
+            "${response.statusCode}: ${_extractErrorMessage(data)}";
       }
-    } catch (ex, stackTrace) {
-      retResponse[false] =
-          "Exception @ApiServices.registerUser(): $ex\n$stackTrace";
+    } on SocketException {
+      loginResponse.message =
+          "Network unreachable. Please check your connection.";
+    } on TimeoutException {
+      loginResponse.message =
+          "Server is taking too long to respond. Please try again.";
+    } catch (e) {
+      loginResponse.message = "An unexpected error occurred: ${e.toString()}";
     }
 
-    return retResponse;
+    return loginResponse;
   }
 
-  Future<RegisterDongleResponse?> registerDongle(
-      RegisterDongleModel model, String token) async {
+  static String _extractErrorMessage(String data) {
     try {
-      final String url = AppEnvironment.baseUrl + AppURLs.getRegisterDongleList;
-      final jsonBody = jsonEncode(model.toJson());
+      final decoded = jsonDecode(data);
+      return decoded['message'] ?? decoded['error'] ?? data;
+    } catch (_) {
+      return data;
+    }
+  }
 
+  Future<InvantabUserResModel> invantabLogin(InvantabUserModel model) async {
+    InvantabUserResModel loginResponse = InvantabUserResModel();
+
+    try {
+      // Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        final url = Uri.parse("http://143.244.142.0/api/v1/accounts/login");
+        final jsonPayload = jsonEncode(model.toJson());
+
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Equivalent to Debug.WriteLine
+        // developer.log(
+        //   'REQUEST :\n$jsonPayload\n\nRESPONSE :\n$data',
+        //   name: 'Invantab Login API',
+        // );
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Map JSON to Model
+          loginResponse = InvantabUserResModel.fromJson(jsonDecode(data));
+          loginResponse.status = "success";
+        } else {
+          // Handle API Error
+          loginResponse.message =
+              "ApiServices.invantabLogin() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        loginResponse.message = "Please check internet connection.";
+      }
+
+      return loginResponse;
+    } catch (e) {
+      loginResponse.status =
+          "Exception in ApiServices.invantabLogin() : ${e.toString()}";
+      return loginResponse;
+    }
+  }
+
+  Future<UserResModel> loginAgain(UserModel model) async {
+    UserResModel loginResponse = UserResModel();
+
+    try {
+      // 1. Prepare Authorization Header
+      Map<String, String> headers = {
+        'Authorization': 'JWT ${App.jwtToken}',
+        'Content-Type': 'application/json',
+      };
+
+      // 2. Execute Logout (GET Request)
+      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.logout);
+      final response = await http.get(url, headers: headers);
+
+      final data = response.body;
+
+      // Using print instead of developer.log
+      print('--- Logout API ---');
+      print('URL: $url');
+      print('RESPONSE: $data');
+      print('------------------');
+
+      // 3. Execute Login
+      loginResponse = await login(model);
+
+      return loginResponse;
+    } catch (e) {
+      print("Error in loginAgain: ${e.toString()}");
+      return loginResponse;
+    }
+  }
+
+  Future<CreateUserResModel> createNewUser(CreateUserReqModel model) async {
+    CreateUserResModel createUserResModel = CreateUserResModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.registerUser);
+
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 2. Execute POST Request
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Print logs
+        print('--- User Registration API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('-----------------------------');
+
+        // 3. Handle Status Codes
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success (200-299)
+          createUserResModel.createUserRes =
+              CreateUserRes.fromJson(jsonDecode(data));
+          createUserResModel.status = "success";
+          createUserResModel.apiStatus = "created";
+        } else if (response.statusCode == 400) {
+          // Bad Request
+          createUserResModel.createUserError =
+              CreateUserError.fromJson(jsonDecode(data));
+          createUserResModel.status = "success";
+          createUserResModel.apiStatus = "bad request";
+        } else if (response.statusCode == 500 || response.statusCode == 503) {
+          // Server Errors
+          createUserResModel.status =
+              "ApiServices.createNewUser() : ${response.statusCode}";
+        } else {
+          // Other errors
+          createUserResModel.status =
+              "${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        createUserResModel.status = "Check internet connection.";
+      }
+
+      return createUserResModel;
+    } catch (ex) {
+      print("Exception in ApiServices.createNewUser(): ${ex.toString()}");
+      createUserResModel.status =
+          "Exception in ApiServices.createNewUser() : ${ex.toString()}";
+      return createUserResModel;
+    }
+  }
+
+  Future<LatestAppVersionModel> checkLatestAppVersion() async {
+    LatestAppVersionModel latestAppVersionModel = LatestAppVersionModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/runtimerevision/latest/');
+
+        // 2. Prepare Authorization Header (JWT)
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs
+        print('--- Check Latest App Version API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('------------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON body
+          latestAppVersionModel =
+              LatestAppVersionModel.fromJson(jsonDecode(data));
+          latestAppVersionModel.message = "success";
+        } else {
+          // Handle API Error
+          latestAppVersionModel.message =
+              "ApiServices.checkLatestAppVersion() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        latestAppVersionModel.message = "Check internet connection.";
+      }
+
+      return latestAppVersionModel;
+    } catch (ex) {
+      print(
+          "Exception in ApiServices.checkLatestAppVersion(): ${ex.toString()}");
+      latestAppVersionModel.message =
+          "Exception in ApiServices.checkLatestAppVersion() : ${ex.toString()}";
+      return latestAppVersionModel;
+    }
+  }
+
+  Future<LatestDbVersionModel> checkLatestDbVersion() async {
+    LatestDbVersionModel latestDbVersionModel = LatestDbVersionModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        final url =
+            Uri.parse('${AppEnvironment.baseUrl}/api/v1/dbrevision/latest/');
+
+        // 2. Prepare Authorization Header
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs
+        print('--- Check Latest Db Version API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('----------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Map JSON to Model
+          // Assumes your model has a fromJson factory
+          latestDbVersionModel =
+              LatestDbVersionModel.fromJson(jsonDecode(data));
+          latestDbVersionModel.message = "success";
+        } else {
+          // Handle API Error
+          latestDbVersionModel.message =
+              "ApiServices.checkLatestDbVersion() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        latestDbVersionModel.message = "Check internet connection.";
+      }
+
+      return latestDbVersionModel;
+    } catch (ex) {
+      print(
+          "Exception in ApiServices.checkLatestDbVersion(): ${ex.toString()}");
+      latestDbVersionModel.message =
+          "Exception in ApiServices.checkLatestDbVersion() : ${ex.toString()}";
+      return latestDbVersionModel;
+    }
+  }
+
+  Future<AllModelsModel> getAllModels(int oemId) async {
+    AllModelsModel allModelsModel = AllModelsModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        // 2. Build URL with query parameters
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/models/get-models/?oem=$oemId');
+
+        // 3. Prepare Authorization Header
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs
+        print('--- Get All Models API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('--------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Map JSON to Model
+          // Assumes AllModelsModel has a fromJson factory
+          allModelsModel = AllModelsModel.fromJson(jsonDecode(data));
+          allModelsModel.message = "success";
+        } else {
+          // Handle API Error
+          allModelsModel.message =
+              "ApiServices.getAllModels() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        allModelsModel.message = "Check internet connection.";
+      }
+
+      return allModelsModel;
+    } catch (ex) {
+      print("Exception in ApiServices.getAllModels(): ${ex.toString()}");
+      allModelsModel.message =
+          "Exception in ApiServices.getAllModels() : ${ex.toString()}";
+      return allModelsModel;
+    }
+  }
+
+  Future<Root> getAllPids(String token) async {
+    Root root = Root();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/datasets/get-pid-datasets/');
+
+        // 2. Prepare Authorization Header with the passed token
+        Map<String, String> headers = {
+          'Authorization': 'JWT $token',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs (Replaces Debug.WriteLine)
+        print('--- Get All Pids API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Parse the JSON string into the Root object
+          // Assumes your Root class has a fromJson factory
+          root = Root.fromJson(jsonDecode(data));
+          root.message = "success";
+        } else {
+          // Handle API Error
+          root.message =
+              "ApiServices.getAllPids() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        root.message = "Check internet connection.";
+      }
+
+      return root;
+    } catch (ex) {
+      print("Exception in ApiServices.getAllPids(): ${ex.toString()}");
+      root.message = "Exception in ApiServices.getAllPids() : ${ex.toString()}";
+      return root;
+    }
+  }
+
+  Future<Root> getPidDataset(int datasetId) async {
+    Root root = Root();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        // 2. Build URL with query parameter 'id'
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/datasets/get-pid-datasets/?id=$datasetId');
+
+        // 3. Prepare Authorization Header
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs
+        print('--- Get PID Dataset API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('---------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Map JSON to Model
+          root = Root.fromJson(jsonDecode(data));
+          root.message = "success";
+        } else {
+          // Handle API Error
+          root.message =
+              "ApiServices.getPidDataset() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        root.message = "Check internet connection.";
+      }
+
+      return root;
+    } catch (ex) {
+      print("Exception in ApiServices.getPidDataset(): ${ex.toString()}");
+      root.message =
+          "Exception in ApiServices.getPidDataset() : ${ex.toString()}";
+      return root;
+    }
+  }
+
+  Future<DtcMainModel> getAllDtcs(String token) async {
+    DtcMainModel results = DtcMainModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/datasets/get-dtc-datasets/');
+
+        // 2. Prepare Authorization Header with the passed token
+        Map<String, String> headers = {
+          'Authorization': 'JWT $token',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs (Replaces Debug.WriteLine)
+        print('--- Get All Dtcs API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Parse the JSON string into the DtcMainModel object
+          results = DtcMainModel.fromJson(jsonDecode(data));
+          results.message = "success";
+        } else {
+          // Handle API Error
+          results.message =
+              "ApiServices.getAllDtcs() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        results.message = "Check internet connection.";
+      }
+
+      return results;
+    } catch (ex) {
+      print("Exception in ApiServices.getAllDtcs(): ${ex.toString()}");
+      results.message =
+          "Exception in ApiServices.getAllDtcs() : ${ex.toString()}";
+      return results;
+    }
+  }
+
+  Future<VariantModel> getVariantList(int oemId) async {
+    VariantModel results = VariantModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        // 2. Build URL with the oem query parameter
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/variant/list/?oem=$oemId');
+
+        // 3. Prepare Authorization Header
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs
+        print('--- Get Variant List API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('----------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string
+          results = VariantModel.fromJson(jsonDecode(data));
+          results.message = "success";
+        } else {
+          // Handle API Error
+          results.message =
+              "ApiServices.getVariantList() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        results.message = "Check internet connection.";
+      }
+
+      return results;
+    } catch (ex) {
+      print("Exception in ApiServices.getVariantList(): ${ex.toString()}");
+      results.message =
+          "Exception in ApiServices.getVariantList() : ${ex.toString()}";
+      return results;
+    }
+  }
+
+  Future<ParameterModel> getParameterList() async {
+    ParameterModel results = ParameterModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        final url =
+            Uri.parse('${AppEnvironment.baseUrl}/api/v1/parameter/list/');
+
+        // 2. Prepare Authorization Header
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs
+        print('--- Get Parameter List API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Map JSON string to the model
+          // Assumes ParameterModel has a fromJson factory
+          results = ParameterModel.fromJson(jsonDecode(data));
+          results.message = "success";
+        } else {
+          // Handle API Error
+          results.message =
+              "ApiServices.getParameterList() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        results.message = "Check internet connection.";
+      }
+
+      return results;
+    } catch (ex) {
+      print("Exception in ApiServices.getParameterList(): ${ex.toString()}");
+      results.message =
+          "Exception in ApiServices.getParameterList() : ${ex.toString()}";
+      return results;
+    }
+  }
+
+  Future<FreezeFrameModel> getFreezeFrameList() async {
+    FreezeFrameModel results = FreezeFrameModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/datasets/get-freeze-frames/');
+
+        // 2. Prepare Authorization Header
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs (Equivalent to Debug.WriteLine)
+        print('--- Get Freeze Frame List API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('---------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string into your model
+          // Assumes FreezeFrameModel has a fromJson factory
+          results = FreezeFrameModel.fromJson(jsonDecode(data));
+          results.message = "success";
+        } else {
+          // Handle API Error
+          results.message =
+              "ApiServices.getFreezeFrameList() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        results.message = "Please check internet connection.";
+      }
+
+      return results;
+    } catch (ex) {
+      print("Exception in ApiServices.getFreezeFrameList(): ${ex.toString()}");
+      results.message =
+          "Exception in ApiServices.getFreezeFrameList() : ${ex.toString()}";
+      return results;
+    }
+  }
+
+  Future<EnvSetModel> getEnvSetList(int ecuId) async {
+    EnvSetModel results = EnvSetModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        // 2. Build URL with the ecu query parameter
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/datasets/get-environment-snapshot/?ecu=$ecuId');
+
+        // 3. Prepare Authorization Header
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Print logs (Equivalent to Debug.WriteLine)
+        print('--- Get Env Set List API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('----------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string into your model
+          // Assumes EnvSetModel has a fromJson factory constructor
+          results = EnvSetModel.fromJson(jsonDecode(data));
+          results.message = "success";
+        } else {
+          // Handle API Error
+          results.message =
+              "ApiServices.getEnvSetList() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        results.message = "Please check internet connection.";
+      }
+
+      return results;
+    } catch (ex) {
+      print("Exception in ApiServices.getEnvSetList(): ${ex.toString()}");
+      results.message =
+          "Exception in ApiServices.getEnvSetList() : ${ex.toString()}";
+      return results;
+    }
+  }
+
+  Future<CreateSessionResModel> createSession(
+      CreateSessionReqModel model) async {
+    CreateSessionResModel createSessionResModel = CreateSessionResModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        // 2. Get Device Unique ID
+        // Note: In Flutter, you usually use the 'device_info_plus' package for this.
+        // Assuming you have a helper method similar to your C# extension:
+        List<String> deviceIdData =
+            await AndroidOperationsService.getDeviceUniqueId();
+        model.macId = deviceIdData[0];
+
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/new/srsession-create/');
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 3. Prepare Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Print logs
+        print('--- Create SRN Session API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the response
+          createSessionResModel =
+              CreateSessionResModel.fromJson(jsonDecode(data));
+          createSessionResModel.message = "success";
+        } else {
+          // Handle API Error
+          createSessionResModel.message =
+              "ApiServices.createSession() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        createSessionResModel.message = "Please check internet connection.";
+      }
+
+      return createSessionResModel;
+    } catch (ex) {
+      print("Exception in ApiServices.createSession(): ${ex.toString()}");
+      createSessionResModel.success = false;
+      createSessionResModel.message =
+          "Exception in ApiServices.createSession() : ${ex.toString()}";
+      return createSessionResModel;
+    }
+  }
+
+  Future<void> uploadEngineHrs(UploadEngineHrsModel model) async {
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Prepare URL and Payload
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/srsession-hrs/create/');
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 3. Prepare Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // 5. Debug Logging
+        print('--- Upload Engine Hrs API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('-----------------------------');
+      }
+    } catch (ex) {
+      // Logic mirrors your empty catch block
+      print("Error in uploadEngineHrs: ${ex.toString()}");
+    }
+  }
+
+  Future<SessionListModel> getSessionBySrNumber(GetSrModel model) async {
+    SessionListModel sessionListResModel = SessionListModel();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/get/srsession-by-srnumber');
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 2. Prepare Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute POST Request
+        final response = await http.post(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Print logs
+        print('--- Get Session By SR Number API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('------------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the response body into a single SessionModel
+          final sessionResModel = SessionModel.fromJson(jsonDecode(data));
+
+          sessionListResModel.message = "success";
+
+          // Replicating your C# logic: Initialize the list and add the single result
+          sessionListResModel.results = <SessionModel>[];
+          sessionListResModel.results?.add(sessionResModel);
+        } else {
+          // Handle API Error
+          sessionListResModel.message =
+              "ApiServices.getSessionBySrNumber() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        sessionListResModel.message = "Please check internet connection.";
+      }
+
+      return sessionListResModel;
+    } catch (ex) {
+      print(
+          "Exception in ApiServices.getSessionBySrNumber(): ${ex.toString()}");
+      sessionListResModel.message =
+          "Exception in ApiServices.getSessionBySrNumber() : ${ex.toString()}";
+      return sessionListResModel;
+    }
+  }
+
+  Future<SessionListModel> getSessionList(int userId) async {
+    SessionListModel sessionListModel = SessionListModel();
+
+    try {
+      // 1. Prepare the URL with the query parameter
+      final url = Uri.parse(
+          '${AppEnvironment.baseUrl}/api/v1/analyze/srsession-list/?created_by=$userId');
+
+      // 2. Prepare Authorization Headers
+      Map<String, String> headers = {
+        'Authorization': 'JWT ${App.jwtToken}',
+        'Content-Type': 'application/json',
+      };
+
+      // 3. Execute the GET Request
+      final response = await http.get(url, headers: headers);
+      final data = response.body;
+
+      // Optional: Logging similar to your C# Debug.WriteLine
+      print('--- Get Session List API ---');
+      print('URL: $url');
+      print('RESPONSE: $data');
+      print('----------------------------');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 4. Deserialize the JSON string into the model
+        // Assumes SessionListModel has a fromJson factory constructor
+        sessionListModel = SessionListModel.fromJson(jsonDecode(data));
+        sessionListModel.message = "success";
+      } else {
+        // Handle API level errors
+        sessionListModel.message =
+            "ApiServices.getSessionList() : ${response.statusCode}";
+      }
+
+      return sessionListModel;
+    } catch (ex) {
+      // 5. Catch and return exceptions
+      print("Exception in ApiServices.getSessionList(): ${ex.toString()}");
+      sessionListModel.message =
+          "Exception in ApiServices.getSessionList() : ${ex.toString()}";
+      return sessionListModel;
+    }
+  }
+
+  Future<SessionListModel> getAllSessionList(int userId) async {
+    SessionListModel sessionListModel = SessionListModel();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Prepare the URL with the query parameter
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/srsession-list/?created_by=$userId');
+
+        // 3. Prepare Authorization Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute the GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Debug printing (Replaces Debug.WriteLine)
+        print('--- Get All Session List API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('--------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string into the model
+          sessionListModel = SessionListModel.fromJson(jsonDecode(data));
+          sessionListModel.message = "success";
+        } else {
+          // Handle API level errors
+          sessionListModel.message =
+              "ApiServices.getAllSessionList() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        sessionListModel.message = "Please check internet connection.";
+      }
+
+      return sessionListModel;
+    } catch (ex) {
+      print("Exception in ApiServices.getAllSessionList(): ${ex.toString()}");
+      sessionListModel.message =
+          "Exception in ApiServices.getAllSessionList() : ${ex.toString()}";
+      return sessionListModel;
+    }
+  }
+
+  Future<CloseSessionResponse> closeSession(
+      int srSessionId, CloseSession model) async {
+    CloseSessionResponse closeSessionResponse = CloseSessionResponse();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Prepare URL (Path parameters) and JSON body
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/sr-session/$srSessionId/close-session/');
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 3. Prepare Authorization Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute the PUT Request
+        final response = await http.put(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Optional: Debug printing
+        print('--- Close Session API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('-------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the response
+          closeSessionResponse =
+              CloseSessionResponse.fromJson(jsonDecode(data));
+          closeSessionResponse.message = "success";
+        } else {
+          // Handle API level errors
+          closeSessionResponse.message =
+              "ApiServices.closeSession() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        closeSessionResponse.message = "Please check internet connection.";
+      }
+
+      return closeSessionResponse;
+    } catch (ex) {
+      print("Exception in ApiServices.closeSession(): ${ex.toString()}");
+      closeSessionResponse.message =
+          "Exception in ApiServices.closeSession() : ${ex.toString()}";
+      return closeSessionResponse;
+    }
+  }
+
+  Future<OemModel> getAllOem() async {
+    OemModel oemModel = OemModel();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        final url = Uri.parse('${AppEnvironment.baseUrl}/api/v1/oem/oem/');
+
+        // 2. Execute GET Request
+        // Note: Authorization is commented out in your C# code,
+        // but I've added the header structure if you need it later.
+        final response = await http.get(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            // 'Authorization': 'JWT ${App.jwtToken}',
+          },
+        );
+
+        final data = response.body;
+
+        // 3. Handle Status Codes
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string into the model
+          oemModel = OemModel.fromJson(jsonDecode(data));
+          oemModel.message = "success";
+        } else {
+          // Handle API level errors
+          oemModel.message =
+              "ApiServices.getAllOem() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        oemModel.message = "Please check internet connection.";
+      }
+
+      return oemModel;
+    } catch (ex) {
+      print("Exception in ApiServices.getAllOem(): ${ex.toString()}");
+      oemModel.message =
+          "Exception in ApiServices.getAllOem() : ${ex.toString()}";
+      return oemModel;
+    }
+  }
+
+  Future<CategoryRootModel> getAllCategories() async {
+    // Initializing with optional/nullable fields allows this call
+    CategoryRootModel model = CategoryRootModel();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        final url =
+            Uri.parse('${AppEnvironment.baseUrl}/api/v1/user/category/list/');
+
+        // 2. Execute GET Request
+        final response = await http.get(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            // 'Authorization': 'JWT ${App.jwtToken}', // Uncomment if needed
+          },
+        );
+
+        final data = response.body;
+
+        // 3. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize JSON to CategoryRootModel
+          model = CategoryRootModel.fromJson(jsonDecode(data));
+          model.message = "success";
+        } else {
+          // Handle API Error
+          model.message =
+              "ApiServices.getAllCategories() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        model.message = "Please check internet connection.";
+      }
+
+      return model;
+    } catch (ex) {
+      print("Exception in ApiServices.getAllCategories(): ${ex.toString()}");
+      model.message =
+          "Exception in ApiServices.getAllCategories() : ${ex.toString()}";
+      return model;
+    }
+  }
+
+  Future<String> getWorkShopData() async {
+    try {
+      // 1. Define the URL
+      final url =
+          Uri.parse('${AppEnvironment.baseUrl}/api/v1/oem/get-workshop');
+
+      // 2. Execute the GET Request
+      // Note: If you need headers, add the headers: {} parameter here.
+      final response = await http.get(url);
+
+      // 3. Read the body content
+      final data = response.body;
+
+      // Optional: Log the response
+      print('--- Get Workshop Data API ---');
+      print('URL: $url');
+      print('RESPONSE: $data');
+      print('-----------------------------');
+
+      return data;
+    } catch (ex) {
+      // 4. Handle exceptions
+      // Assuming you have the showMessage extension we created earlier
+      "Exception in ApiServices.getWorkShopData() : ${ex.toString()}"
+          .showMessage();
+
+      return "";
+    }
+  }
+
+  Future<SessionListModel> getSessionBySessionId(int sessionId) async {
+    // Ensure your SessionListModel constructor handles initialization
+    // (e.g., results: [] if it is required)
+    SessionListModel sessionListModel = SessionListModel(results: []);
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Build URL with query parameter 'id'
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/srsession-list/?id=$sessionId');
+
+        // 3. Prepare Authorization Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute the GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Optional: Debug logging
+        print('--- Get Session By Session ID API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('--------------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string into the model
+          sessionListModel = SessionListModel.fromJson(jsonDecode(data));
+          sessionListModel.message = "success";
+        } else {
+          // Handle API level errors
+          sessionListModel.message =
+              "ApiServices.getSessionBySessionId() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        sessionListModel.message = "Please check internet connection.";
+      }
+
+      return sessionListModel;
+    } catch (ex) {
+      print(
+          "Exception in ApiServices.getSessionBySessionId(): ${ex.toString()}");
+      sessionListModel.message =
+          "Exception in ApiServices.getSessionBySessionId() : ${ex.toString()}";
+      return sessionListModel;
+    }
+  }
+
+  Future<RegDongleRespons> registerDongle(
+      RegisterDongleModel registerDongleModel, String token) async {
+    // Ensure your model constructor allows empty initialization
+    // or provide required fields if necessary.
+    RegDongleRespons regDongleRespons = RegDongleRespons();
+
+    try {
+      // 1. Check Connectivity
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/devices/register/odb-device/');
+        final jsonPayload = jsonEncode(registerDongleModel.toJson());
+
+        // 2. Prepare Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT $token',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute POST Request
+        final response = await http.post(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Optional: Debug logging
+        print('--- Register Dongle API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('---------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize response
+          regDongleRespons = RegDongleRespons.fromJson(jsonDecode(data));
+          regDongleRespons.status = "success";
+        } else {
+          // Handle API level errors
+          regDongleRespons.message =
+              "ApiServices.registerDongle() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        regDongleRespons.message = "Please check internet connection.";
+      }
+
+      return regDongleRespons;
+    } catch (ex) {
+      print("Exception in ApiServices.registerDongle(): ${ex.toString()}");
+      regDongleRespons.message =
+          "Exception in ApiServices.registerDongle() : ${ex.toString()}";
+      return regDongleRespons;
+    }
+  }
+
+  Future<ValidateVariantResponseModel> getVariantPartValue(
+      ValidateVariantRequestModel model) async {
+    ValidateVariantResponseModel validateVariantResModel =
+        ValidateVariantResponseModel();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze_prodbud/validateESN-flashing');
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 2. Prepare Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute POST Request
+        final response = await http.post(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Debug printing (Replaces Debug.WriteLine)
+        print('--- Get Variant Part Value API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('----------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize JSON to ValidateVariantResponseModel
+          validateVariantResModel =
+              ValidateVariantResponseModel.fromJson(jsonDecode(data));
+          validateVariantResModel.message = "success";
+        } else {
+          // Handle API level errors
+          validateVariantResModel.message =
+              "ApiServices.getVariantPartValue() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        validateVariantResModel.message = "Please check internet connection.";
+      }
+
+      return validateVariantResModel;
+    } catch (ex) {
+      print("Exception in ApiServices.getVariantPartValue(): ${ex.toString()}");
+      validateVariantResModel.message =
+          "Exception in ApiServices.getVariantPartValue() : ${ex.toString()}";
+      return validateVariantResModel;
+    }
+  }
+
+  Future<VariantPartRoot> getVariantPartValueNew(String srNumber) async {
+    // Initialize the model. Ensure the constructor handles required fields if any.
+    VariantPartRoot variantPartResponse = VariantPartRoot();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Build URL with query parameter 'sr_number'
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/get/srsession/part-replacement/list/?sr_number=$srNumber');
+
+        // 3. Prepare Authorization Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute the GET Request
+        final response = await http.get(url, headers: headers);
+        final data = response.body;
+
+        // Debug printing
+        print('--- Get Variant Part Value New API ---');
+        print('URL: $url');
+        print('RESPONSE: $data');
+        print('--------------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize JSON to VariantPartRoot
+          variantPartResponse = VariantPartRoot.fromJson(jsonDecode(data));
+          variantPartResponse.message = "success";
+        } else {
+          // Handle API level errors
+          variantPartResponse.message =
+              "ApiServices.getVariantPartValueNew() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        variantPartResponse.message = "Please check internet connection.";
+      }
+
+      return variantPartResponse;
+    } catch (ex) {
+      print(
+          "Exception in ApiServices.getVariantPartValueNew(): ${ex.toString()}");
+      variantPartResponse.message =
+          "Exception in ApiServices.getVariantPartValueNew() : ${ex.toString()}";
+      return variantPartResponse;
+    }
+  }
+
+  Future<PartReplacementAnalyzeRes> partReplacementAnalyze(
+      PartReplacementAnalyzeModel model, int sessionId) async {
+    // Initialize with an empty list to match your C# 'new List<...>' logic
+    PartReplacementAnalyzeRes analyze = PartReplacementAnalyzeRes(
+      result: <PartReplacementAnalyzeResponse>[],
+    );
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$sessionId/part-replacement/');
+
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 2. Prepare Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 3. Execute the POST Request
+        final response = await http.post(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Debug printing
+        print('--- Part Replacement Analyze API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('------------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize JSON list into the result property
+          final List<dynamic> decodedList = jsonDecode(data);
+
+          analyze.result = decodedList
+              .map((item) => PartReplacementAnalyzeResponse.fromJson(item))
+              .toList();
+
+          analyze.message = "success";
+        } else {
+          // Handle API level errors
+          analyze.message =
+              "ApiServices.partReplacementAnalyze() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        analyze.message = "Please check internet connection.";
+      }
+
+      return analyze;
+    } catch (ex) {
+      print(
+          "Exception in ApiServices.partReplacementAnalyze(): ${ex.toString()}");
+      analyze.message =
+          "Exception in ApiServices.partReplacementAnalyze() : ${ex.toString()}";
+      return analyze;
+    }
+  }
+
+  Future<VariantPartReplacementEcuResponse> partReplacementEcu(
+      VariantPartReplacementEcuRequest model, int sessionId) async {
+    // Initialize the response model
+    VariantPartReplacementEcuResponse ecuResponse =
+        VariantPartReplacementEcuResponse();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Prepare URL and Payload
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/techbud-ecu-partreplacement/$sessionId/ecu');
+
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 3. Prepare Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute the POST Request
+        final response = await http.post(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Debug printing (Replaces Debug.WriteLine)
+        print('--- Ecu Replacement API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('---------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize JSON to VariantPartReplacementEcuResponse
+          ecuResponse =
+              VariantPartReplacementEcuResponse.fromJson(jsonDecode(data));
+          ecuResponse.message = "success";
+        } else {
+          // Handle API level errors
+          ecuResponse.message =
+              "ApiServices.partReplacementEcu() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        ecuResponse.message = "Please check internet connection.";
+      }
+
+      return ecuResponse;
+    } catch (ex) {
+      print("Exception in ApiServices.partReplacementEcu(): ${ex.toString()}");
+      ecuResponse.message =
+          "Exception in ApiServices.partReplacementEcu() : ${ex.toString()}";
+      return ecuResponse;
+    }
+  }
+
+  Future<VariantPartReplacementFipResponse> partReplacementFip(
+      VariantPartReplacementFipRequest model, int sessionId) async {
+    // Initialize response model
+    VariantPartReplacementFipResponse fipResponse =
+        VariantPartReplacementFipResponse();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Prepare URL and JSON Payload
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/techbud-fip-partreplacement/$sessionId/fip');
+
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 3. Prepare Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Debug printing (Matches your Debug.WriteLine)
+        print('--- Fip Replacement API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('---------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize response body
+          fipResponse =
+              VariantPartReplacementFipResponse.fromJson(jsonDecode(data));
+          fipResponse.message = "success";
+        } else {
+          // Handle API level errors
+          fipResponse.message =
+              "ApiServices.partReplacementFip() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        fipResponse.message = "Please check internet connection.";
+      }
+
+      return fipResponse;
+    } catch (ex) {
+      print("Exception in ApiServices.partReplacementFip(): ${ex.toString()}");
+      fipResponse.message =
+          "Exception in ApiServices.partReplacementFip() : ${ex.toString()}";
+      return fipResponse;
+    }
+  }
+
+  Future<VariantPartReplacementInjectorResponse> partReplacementInjectors(
+      VariantPartReplacementInjectorRequest model, int sessionId) async {
+    // Initialize the response model
+    VariantPartReplacementInjectorResponse injectorResponse =
+        VariantPartReplacementInjectorResponse();
+
+    try {
+      // 1. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Prepare URL and Payload
+        final url = Uri.parse(
+            '${AppEnvironment.baseUrl}/api/v1/analyze/techbud-injector-partreplacement/$sessionId/injector');
+
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 3. Prepare Headers
+        Map<String, String> headers = {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        };
+
+        // 4. Execute the POST Request
+        final response = await http.post(
+          url,
+          headers: headers,
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Debug printing (Matches your Debug.WriteLine)
+        print('--- Injectors Replacement API ---');
+        print('URL: $url');
+        print('REQUEST: $jsonPayload');
+        print('RESPONSE: $data');
+        print('---------------------------------');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize response body
+          injectorResponse =
+              VariantPartReplacementInjectorResponse.fromJson(jsonDecode(data));
+          injectorResponse.message = "success";
+        } else {
+          // Handle API level errors
+          injectorResponse.message =
+              "ApiServices.partReplacementInjectors() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        injectorResponse.message = "Please check internet connection.";
+      }
+
+      return injectorResponse;
+    } catch (ex) {
+      print(
+          "Exception in ApiServices.partReplacementInjectors(): ${ex.toString()}");
+      injectorResponse.message =
+          "Exception in ApiServices.partReplacementInjectors() : ${ex.toString()}";
+      return injectorResponse;
+    }
+  }
+
+  Future<VariantPartReplacementOtherResponse> partReplacementOther(
+      VariantPartReplacementOtherRequest model, int sessionId) async {
+    VariantPartReplacementOtherResponse otherResponse =
+        VariantPartReplacementOtherResponse();
+
+    try {
+      // 1. Prepare URL and Payload
+      final url = Uri.parse(
+          '${AppEnvironment.baseUrl}/api/v1/analyze/techbud-other-partreplacement/$sessionId/other-part');
+
+      final jsonPayload = jsonEncode(model.toJson());
+
+      // 2. Prepare Headers
+      Map<String, String> headers = {
+        'Authorization': 'JWT ${App.jwtToken}',
+        'Content-Type': 'application/json',
+      };
+
+      // 3. Execute the POST Request
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonPayload,
+      );
+
+      // 4. Handle Response
+      final data = response.body;
+
+      // Optional: Debugging
+      print('--- Other Part Replacement API ---');
+      print('URL: $url');
+      print('RESPONSE: $data');
+      print('----------------------------------');
+
+      // Deserialize and set success message
+      otherResponse =
+          VariantPartReplacementOtherResponse.fromJson(jsonDecode(data));
+      otherResponse.message = "success";
+
+      return otherResponse;
+    } catch (ex) {
+      print(
+          "Exception in ApiServices.partReplacementOther(): ${ex.toString()}");
+      otherResponse.message =
+          "Exception in ApiServices.partReplacementOther() : ${ex.toString()}";
+      return otherResponse;
+    }
+  }
+
+  Future<String> readStringFromUrl(String url) async {
+    try {
+      // 1. Create URI from string
+      final uri = Uri.parse(url);
+
+      // 2. Execute GET request
+      // Dart's http.get is similar to SendAsync with ResponseHeadersRead
+      // as it streams the body efficiently.
+      final response = await http.get(uri);
+
+      // 3. Check for success status code (200-299)
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return response.body;
+      } else {
+        // Throwing an exception matches your 'throw new Exception' logic
+        throw Exception(response.body);
+      }
+    } catch (ex) {
+      // 4. Handle exceptions and return empty string as per your C# code
+      print("Error in readStringFromUrl: ${ex.toString()}");
+      return "";
+    }
+  }
+
+  double downloadProgress = 0.0;
+
+  Future<String> readDataFile(String url) async {
+    String downloadedText = "";
+
+    try {
+      downloadProgress = 0;
+
+      // Use http.Client to handle streamed responses
+      final client = http.Client();
+      final request = http.Request('GET', Uri.parse(url));
+
+      // Send request and get streamed response
+      final response = await client.send(request).timeout(
+            const Duration(seconds: 150),
+          );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final int? contentLength = response.contentLength;
+        List<int> bytes = [];
+        int totalBytesRead = 0;
+
+        // Stream the response body
+        final completer = Completer<String>();
+
+        response.stream.listen(
+          (List<int> chunk) {
+            bytes.addAll(chunk);
+            totalBytesRead += chunk.length;
+
+            // Update progress if content length is known
+            if (contentLength != null && contentLength > 0) {
+              downloadProgress = totalBytesRead / contentLength;
+              // Optional: notify listeners or use a ValueNotifier for UI updates
+            }
+          },
+          onDone: () {
+            downloadedText = utf8.decode(bytes);
+            completer.complete(downloadedText);
+          },
+          onError: (error) {
+            completer.complete("");
+          },
+          cancelOnError: true,
+        );
+
+        return await completer.future;
+      }
+    } catch (ex) {
+      print("Exception in readDataFile: ${ex.toString()}");
+    }
+
+    return downloadedText;
+  }
+
+  Future<String> readStringFromUrl1(String url) async {
+    try {
+      // 1. Initialize the HTTP client
+      // Note: You can also use http.get(Uri.parse(url)) directly
+      final response = await http.get(Uri.parse(url));
+
+      // 2. Check if the request was successful
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // response.body automatically handles the decoding of the stream
+        return response.body;
+      } else {
+        return "";
+      }
+    } catch (ex) {
+      // 3. Handle any exceptions (network errors, timeouts, etc.)
+      print("Exception in readStringFromUrl1: ${ex.toString()}");
+      return "";
+    }
+  }
+
+  Future<AllModelsModel?> get_All_Models(String token, int id) async {
+    String dataString = "";
+
+    try {
+      // 1. Get previously saved OEM data from your storage service
+      // Assuming 'storage' is an instance of a helper class or SharedPreferences
+      var savedOemData =
+          await AndroidOperationsService.getData("selctedOemModel");
+
+      if (savedOemData != null && savedOemData.isNotEmpty) {
+        var selectedOem = AllOemModel.fromJson(jsonDecode(savedOemData));
+        id = selectedOem.id ?? id;
+      }
+
+      // 2. Prepare the Request
+      final url =
+          Uri.parse("${AppEnvironment.baseUrl}models/get-models/?oem=$id");
+      final headers = {
+        'Authorization': 'JWT $token',
+        'Content-Type': 'application/json',
+      };
+
+      // 3. Execute GET Request
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 401) {
+        // Handle Unauthorized - You could throw an exception here to trigger the catch block
+        throw Exception("Unauthorized");
+      } else {
+        dataString = response.body;
+      }
+
+      // 4. Save the raw JSON data locally (Caching)
+      await AndroidOperationsService.saveData("modeljson", dataString);
+
+      // 5. Deserialize and return
+      return AllModelsModel.fromJson(jsonDecode(dataString));
+    } catch (ex) {
+      // 6. Handle Exceptions (matches your catch block logic)
+      debugPrint("Exception in getAllModels: ${ex.toString()}");
+
+      // Display Alert (Requires a BuildContext, or a global key)
+      // GlobalContextService.showDialog("ERROR", "Please Re-Login");
+
+      // 7. Clear Preferences/Sessions
+      await AppPreferences.removeToken();
+      await AppPreferences.clearLoginSession();
+
+      // 8. Redirect to Login Page
+      // NavigationService.pushAndRemoveUntil(const LoginPage());
+
+      return null;
+    }
+  }
+
+  Future<Uint8List?> getImageFromUrlAsync(String url) async {
+    try {
+      // 1. Fetch the image as a byte array (Uint8List in Dart)
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 2. Return the bytes (equivalent to returning the stream in C#)
+        return response.bodyBytes;
+      } else {
+        return null;
+      }
+    } catch (ex) {
+      print("Exception in getImageFromUrlAsync: ${ex.toString()}");
+      return null;
+    }
+  }
+
+  Future<FirmwareUpdateModel> getLatestFirmwareVersion(
+      String partNumber) async {
+    // Initialize the results model
+    FirmwareUpdateModel results = FirmwareUpdateModel();
+
+    try {
+      // 1. Check Connectivity
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Prepare URL with Query Parameter
+        final url = Uri.parse(
+            'http://143.244.142.0/api/v1/pipo/firmware_manager/list/?part_no=$partNumber');
+
+        // 3. Execute GET Request
+        final response = await http.get(url);
+
+        final data = response.body;
+
+        // 4. Debug Logging - FIXED: Removed the 'name' parameter for print()
+        print("--- Get Latest Firmware Version API ---");
+        print("URL: $url");
+        print("RESPONSE: $data");
+        print("---------------------------------------");
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize JSON to FirmwareUpdateModel
+          // It's safer to decode once and use the result
+          final decodedData = jsonDecode(data);
+          results = FirmwareUpdateModel.fromJson(decodedData);
+          results.message = "success";
+        } else {
+          // Handle API Level Errors
+          results.message =
+              "ApiServices.getLatestFirmwareVersion() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+        }
+      } else {
+        results.message = "Please check internet connection.";
+      }
+
+      return results;
+    } catch (ex) {
+      print(
+          "Exception in ApiServices.getLatestFirmwareVersion(): ${ex.toString()}");
+      results.message =
+          "Exception in ApiServices.getLatestFirmwareVersion() : ${ex.toString()}";
+      return results;
+    }
+  }
+
+  Future<FirmwareUpdateResponseModel> updateFirmware(
+      FirmwareUpdateModel model) async {
+    // 1. Prepare URL and initialize response
+    final String url = "${AppEnvironment.baseUrl}devices/fotax/latest/firmware";
+    FirmwareUpdateResponseModel respons = FirmwareUpdateResponseModel();
+
+    try {
+      // 2. Check Connectivity using your service
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 3. Serialize Model to JSON
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            // Add Authorization header here if required by this endpoint:
+            // 'Authorization': 'JWT ${App.jwtToken}',
+          },
+          body: jsonPayload,
+        );
+
+        final data = response.body;
+
+        // Debugging
+        print("--- Update Firmware API ---");
+        print("URL: $url");
+        print("PAYLOAD: $jsonPayload");
+        print("RESPONSE: $data");
+        print("---------------------------");
+
+        if (response.statusCode == 200) {
+          // Success: Deserialize JSON to FirmwareUpdateResponseModel
+          respons = FirmwareUpdateResponseModel.fromJson(jsonDecode(data));
+        } else {
+          // Error: Store the status code as the error
+          respons.error = response.statusCode.toString();
+        }
+      } else {
+        respons.error = "No internet connection";
+      }
+
+      return respons;
+    } catch (ex) {
+      print("Exception in ApiServices.updateFirmware(): ${ex.toString()}");
+      respons.error =
+          "Exception in ApiServices.updateFirmware() : ${ex.toString()}";
+      return respons;
+    }
+  }
+
+  Future<bool> existPasswordCheck(UserModel model) async {
+    try {
+      // 1. Prepare URL and Payload
+      final url = Uri.parse("${AppEnvironment.baseUrl}accounts/login/");
+      final jsonPayload = jsonEncode(model.toJson());
+
+      // 2. Execute POST Request
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonPayload,
+      );
+
+      // 3. Check for Status Code 200 (OK)
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (ex) {
+      // 4. Handle Exceptions
+      print("Exception in ApiServices.existPasswordCheck(): ${ex.toString()}");
+
+      // Equivalent to your show_message()
+      // _showErrorMessage("Exception in ApiServices.existPasswordCheck() : ${ex.toString()}");
+
+      return false;
+    }
+  }
+
+  Future<bool> changePassword(ChangePassword cp, String token) async {
+    try {
+      // 1. Prepare URL and Payload
+      final url =
+          Uri.parse("${AppEnvironment.baseUrl}accounts/password/change/");
+      final jsonPayload = jsonEncode(cp.toJson());
+
+      // 2. Prepare Headers (Including JWT Token)
+      final Map<String, String> headers = {
+        'Authorization': 'JWT $token',
+        'Content-Type': 'application/json',
+      };
+
+      // 3. Execute POST Request
+      // We use await to prevent blocking the UI thread
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonPayload,
+      );
+
+      // 4. Handle Response
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        // You can log response.body here to see why it failed
+        print("Change Password Failed: ${response.body}");
+        return false;
+      }
+    } catch (ex) {
+      // 5. Exception Handling
+      print("Exception in ApiServices.changePassword(): ${ex.toString()}");
+
+      // Equivalent to your show_message()
+      // showMessage("Exception in ApiServices.changePassword() : ${ex.toString()}");
+
+      return false;
+    }
+  }
+
+  Future<JobcardNumber> getJobCardNumber() async {
+    // 1. Initialize the response model
+    JobcardNumber jobcardNumber = JobcardNumber();
+
+    try {
+      // 2. Prepare URL
+      final url = Uri.parse("${AppEnvironment.baseUrl}analyze/gen-name");
+
+      // 3. Execute GET Request with Authorization header
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // 4. Read the response body
+      final data = response.body;
+
+      // 5. Check if successful and deserialize
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        jobcardNumber = JobcardNumber.fromJson(jsonDecode(data));
+      } else {
+        jobcardNumber.error = "Jobcard number not created";
+      }
+
+      return jobcardNumber;
+    } catch (ex) {
+      // 6. Handle Exceptions
+      print("Exception in ApiServices.getJobCardNumber(): ${ex.toString()}");
+      jobcardNumber.error = "Jobcard number not created";
+      return jobcardNumber;
+    }
+  }
+
+  Future<List<JobCardModel>?> getJobCard(String token, String filename) async {
+    try {
+      String data = "";
+
+      // 1. Connectivity Check (Using standard Cross-Platform check or your service)
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Prepare Request
+        final url = Uri.parse("${AppEnvironment.baseUrl}analyze/my-job-card/");
+        final response = await http.get(
+          url,
+          headers: {
+            'Authorization': 'JWT ${App.jwtToken}',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        data = response.body;
+
+        // 3. Handle Unauthorized
+        if (response.statusCode == 401) {
+          // Direct equivalent to DisplayAlert and NavigationPage switch
+          // Note: 'context' or a navigatorKey is required in Flutter for this
+          print("Unauthorized: You need to Login again to continue");
+
+          // Clearing preferences directly as in your MAUI logic
+          await AppPreferences.clearLoginSession();
+
+          // Navigation (Assuming you have a way to access the global navigator)
+          // navigatorKey.currentState?.pushAndRemoveUntil(...)
+
+          return null;
+        }
+        // 4. Handle Success
+        else if (response.statusCode >= 200 && response.statusCode < 300) {
+          final List<dynamic> userInfo = jsonDecode(data);
+          final list = userInfo.map((x) => JobCardModel.fromJson(x)).toList();
+
+          // SaveData equivalent
+          await AppPreferences.setString("JsonList", data);
+
+          return list;
+        }
+        // 5. Handle Error Response
+        else {
+          Map<String, dynamic> htmlAttributes = jsonDecode(data);
+          print(htmlAttributes["detail"]);
+          return null;
+        }
+      }
+      // 6. Offline Logic (Else block)
+      else {
+        // GetData equivalent
+        String? jsonListData = await AppPreferences.getString("JsonList");
+
+        if (jsonListData != null && jsonListData.isNotEmpty) {
+          final List<dynamic> userInfo = jsonDecode(jsonListData);
+          final list = userInfo.map((x) => JobCardModel.fromJson(x)).toList();
+          return list;
+        }
+        return null;
+      }
+    } catch (ex) {
+      // 7. Catch Block Logic
+      print("Session is Expired");
+
+      // Clear and Redirect logic
+      await AppPreferences.clearLoginSession();
+      // navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (_) => LoginPage()));
+
+      return null;
+    }
+  }
+
+  Future<CheckJobCardModel?> checkJobCard(
+      String token, String jobCardNumber) async {
+    try {
+      // 1. Prepare Basic Authentication (Basic authData)
+      String authData = "uptime_user:data1234";
+      String authHeaderValue = base64Encode(utf8.encode(authData));
+
+      // 2. Prepare the OData URL
+      // String interpolation used for the JobCardNumber parameter
+      final url = Uri.parse(
+          "https://udaanapprovals.vecv.net/sap/opu/odata/sap/ZODATA_FIR_SRV/ES_HEADER(JobCrd='$jobCardNumber')?&\$format=json");
+
+      // 3. Execute GET Request
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Basic $authHeaderValue',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // 4. Read Response Body
+      final data = response.body;
+
+      // 5. Deserialize JSON
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decodedData = jsonDecode(data);
+        return CheckJobCardModel.fromJson(decodedData);
+      } else {
+        print("Error CheckJobCard: ${response.statusCode} - $data");
+        return null;
+      }
+    } catch (ex) {
+      // 6. Handle Exceptions (Equivalent to your show_message)
+      print("Exception in ApiServices.checkJobCard(): ${ex.toString()}");
+      // You can call your UI alert method here
+      return null;
+    }
+  }
+
+  Future<List<JobcardModelSecond>?> checkJobCardSecondAPI(
+      String token, String jobCardNumber) async {
+    try {
+      // 1. Construct the URL with query parameters
+      final String url =
+          "http://eos.eicher.in:8082/Api/Ticket/$jobCardNumber?Username=pbhujbal@vecv.in&password=eicher@123";
+
+      // 2. Execute the GET request
+      // Note: We use await instead of .Result
+      final response = await http.get(Uri.parse(url));
+
+      // 3. Get the response body
+      final String data = response.body;
+
+      // 4. Check status code and deserialize
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Decode the raw JSON string into a List
+        final List<dynamic> decodedList = jsonDecode(data);
+
+        // Map the list into your model objects
+        return decodedList
+            .map((item) => JobcardModelSecond.fromJson(item))
+            .toList();
+      } else {
+        print("API Error: ${response.statusCode}");
+        return null;
+      }
+    } catch (ex) {
+      // 5. Handle exceptions matching your show_message logic
+      print(
+          "Exception in ApiServices.checkJobCardSecondAPI(): ${ex.toString()}");
+
+      // If you have a custom show_message function:
+      // show_message(ex.toString());
+
+      return null;
+    }
+  }
+
+  Future<MainResultClass?> sendJobCard(SendJobcardData model) async {
+    try {
+      MainResultClass mainResultClass = MainResultClass();
+
+      // 1. Check Connectivity
+      bool isConnected = await AndroidOperationsService.hasInternet();
+
+      if (isConnected) {
+        // 2. Prepare URL and Payload
+        final url = Uri.parse("${AppEnvironment.baseUrl}analyze/job-card/");
+        final jsonPayload = jsonEncode(model.toJson());
+
+        // 3. Execute POST Request
+        // Using await instead of .Result to keep the app responsive
+        final response = await http.post(
+          url,
+          headers: {
+            'Authorization': 'JWT ${App.jwtToken}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonPayload,
+        );
+
+        final String data = response.body;
+
+        // 4. Handle Bad Request (400) - Usually for Duplicate JobCards
+        if (response.statusCode == 400) {
+          var userInfo = SameJobcard.fromJson(jsonDecode(data));
+          mainResultClass.sameJobcard = userInfo;
+          mainResultClass.createJobcard = null;
+        }
+        // 5. Handle Success / Other Cases
+        else {
+          // Note: You might want to check for 200/201 specifically
+          var userInfo = JobCardModel.fromJson(jsonDecode(data));
+          mainResultClass.sameJobcard = null;
+          mainResultClass.createJobcard = userInfo;
+        }
+      }
+
+      return mainResultClass;
+    } catch (ex) {
+      // 6. Handle Exceptions (Matches your show_message logic)
+      print("Exception in ApiServices.sendJobCard(): ${ex.toString()}");
+
+      // If you have a custom show_message function:
+      // show_message(ex.toString());
+
+      return null;
+    }
+  }
+
+  Future<List<ExistJobCardResult>?> getExistJobCard(
+      String token, String jobCardNumber) async {
+    try {
+      // 1. Prepare URL with query parameter
+      final url = Uri.parse(
+          "${AppEnvironment.baseUrl}analyze/job-card/?job_card_name=$jobCardNumber");
+
+      // 2. Execute GET Request
+      // Headers include the JWT token as per your C# logic
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'JWT $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // 3. Read Response Body
+      final String data = response.body;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 4. Deserialize the wrapper object (ExistJobCard)
+        final decodedData = jsonDecode(data);
+        final existJobCardWrapper = ExistJobCard.fromJson(decodedData);
+
+        // 5. Return the results list (matches ExistJobCard.results in C#)
+        return existJobCardWrapper.results;
+      } else {
+        print("API Error: ${response.statusCode} - $data");
+        return null;
+      }
+    } catch (ex) {
+      // 6. Handle Exceptions (matches your show_message logic)
+      print("Exception in ApiServices.getExistJobCard(): ${ex.toString()}");
+
+      // If you have your custom show_message:
+      // show_message("${ex.toString()}");
+
+      return null;
+    }
+  }
+
+  Future<Result?> postJobCardSession(PostJobCardSession postJobCardSession,
+      String token, String jobCardId) async {
+    try {
+      // 1. Prepare URL with the specific JobCardId path parameter
+      final String url =
+          "${AppEnvironment.baseUrl}analyze/job-card/$jobCardId/job-card-session/";
+
+      // 2. Serialize the input model to JSON
+      final String jsonPayload = jsonEncode(postJobCardSession.toJson());
+
+      // 3. Execute POST Request
+      // Replaces .Result with await to keep the app responsive
       final response = await http.post(
         Uri.parse(url),
         headers: {
           'Authorization': 'JWT $token',
           'Content-Type': 'application/json',
         },
-        body: jsonBody,
+        body: jsonPayload,
       );
 
-      if (response.statusCode == 403) {
-        // Handle forbidden case if needed
-        print('Forbidden: ${response.body}');
-        return null;
-      } else if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        final dongleResp = RegDongleResponse.fromJson(data);
-        return RegisterDongleResponse(errorRes: dongleResp);
+      // 4. Get response body
+      final String data = response.body;
+
+      // 5. Check status code and deserialize
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decodedData = jsonDecode(data);
+        return Result.fromJson(decodedData);
       } else {
-        print('Unexpected status: ${response.statusCode}');
-        print(response.body);
+        print("API Error: ${response.statusCode} - $data");
         return null;
       }
-    } catch (e, stackTrace) {
-      print('Exception: $e');
-      print(stackTrace);
+    } catch (ex) {
+      // 6. Handle Exceptions (matches your show_message logic)
+      print("Exception in ApiServices.postJobCardSession(): ${ex.toString()}");
+
+      // If you have your custom show_message:
+      // show_message(ex.toString());
+
+      return null;
+    }
+  }
+
+  Future<List<ModelNameClass>?> getModel(
+      String token, String selectedModelType) async {
+    try {
+      List<ModelNameClass> modelNameClasses = [];
+
+      // 1. Prepare Request
+      final url = Uri.parse("${AppEnvironment.baseUrl}oem/get-models-dtc/");
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'JWT $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // 2. Read Response Body
+      final String data = response.body;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 3. Parse JSON as a Map (dynamic list in your C#)
+        final Map<String, dynamic> decodedData = jsonDecode(data);
+
+        // Access the "models" key
+        final Map<String, dynamic> adminPackageList = decodedData["models"];
+
+        // 4. Iterate through the dictionary/map
+        adminPackageList.forEach((key, value) {
+          // value corresponds to your ModelListModel in C#
+          // We access the nested list 'NA_NA' and its first element
+          var naNaList = value['NA_NA'] as List;
+
+          if (naNaList.isNotEmpty) {
+            ModelNameClass model = ModelNameClass(
+              modelName: key,
+              id: naNaList[0]['model_id'],
+            );
+            modelNameClasses.add(model);
+          }
+        });
+
+        // 5. Filter the list based on selectedModelType (LINQ Where equivalent)
+        final filteredList = modelNameClasses
+            .where((x) => x.modelName!
+                .toLowerCase()
+                .contains(selectedModelType.toLowerCase()))
+            .toList();
+
+        return filteredList;
+      } else {
+        print("API Error: ${response.statusCode}");
+        return null;
+      }
+    } catch (ex) {
+      // 6. Handle Exceptions
+      print("Exception in ApiServices.getModel(): ${ex.toString()}");
+
+      // show_message implementation here
+
+      return null;
+    }
+  }
+
+  Future<OnlineExpertModel?> getOnlineExpert(String token) async {
+    try {
+      // 1. Prepare URL
+      final url = Uri.parse(
+          "${AppEnvironment.baseUrl}user/online-expert-users/?format=json");
+
+      // 2. Execute GET Request
+      // Headers include the JWT token as per your C# logic
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'JWT $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // 3. Read Response Body
+      final String data = response.body;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 4. Deserialize JSON to OnlineExpertModel
+        final decodedData = jsonDecode(data);
+        return OnlineExpertModel.fromJson(decodedData);
+      } else {
+        print("API Error: ${response.statusCode} - $data");
+        return null;
+      }
+    } catch (ex) {
+      // 5. Handle Exceptions (matches your show_message logic)
+      print("Exception in ApiServices.getOnlineExpert(): ${ex.toString()}");
+
+      // If you have your custom show_message:
+      // show_message(ex.toString());
+
+      return null;
+    }
+  }
+
+  Future<MainResponseModel?> createRemoteJobCard(
+      RemoteJobCardModel model, String sessionId) async {
+    try {
+      MainResponseModel mainResultClass = MainResponseModel();
+
+      // 1. Prepare URL and Payload
+      final String url =
+          "${AppEnvironment.baseUrl}analyze/job-card-session/$sessionId/remote-session/";
+      final String jsonPayload = jsonEncode(model.toJson());
+
+      // 2. Execute POST Request
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonPayload,
+      );
+
+      final String data = response.body;
+
+      // 3. Handle Bad Request (400) - Already Exist logic
+      if (response.statusCode == 400) {
+        final badResult = BadRequestResponseModel.fromJson(jsonDecode(data));
+        mainResultClass.status = "Already Exist";
+        mainResultClass.badRequestResponseModel = badResult;
+      }
+      // 4. Handle Success / New Request logic
+      else if (response.statusCode >= 200 && response.statusCode < 300) {
+        final newResult = ResponseJobCardModel.fromJson(jsonDecode(data));
+        mainResultClass.status = "New";
+        mainResultClass.newRequestResponseModel = newResult;
+      } else {
+        print("API Error: ${response.statusCode} - $data");
+        return null;
+      }
+
+      return mainResultClass;
+    } catch (ex) {
+      // 5. Exception Handling
+      print("Exception in ApiServices.createRemoteJobCard(): ${ex.toString()}");
+
+      // Equivalent to show_message if you have a UI helper
+      // show_message(ex.toString());
+
+      return null;
+    }
+  }
+
+  Future<ResponseJobCardModel?> updateRemoteJobCard(RemoteJobCardModel model,
+      String sessionId, String remoteSessionId) async {
+    try {
+      // 1. Prepare URL with interpolated path parameters
+      final String url =
+          "${AppEnvironment.baseUrl}analyze/job-card-session/$sessionId/remote-session/$remoteSessionId/";
+
+      // 2. Serialize the model to JSON
+      final String jsonPayload = jsonEncode(model.toJson());
+
+      // 3. Execute PUT Request
+      // We use await instead of .Result to keep the UI responsive
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonPayload,
+      );
+
+      // 4. Get the response body
+      final String data = response.body;
+
+      // 5. Check status code and deserialize
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final Map<String, dynamic> decodedData = jsonDecode(data);
+        return ResponseJobCardModel.fromJson(decodedData);
+      } else {
+        print("API Error: ${response.statusCode} - $data");
+        return null;
+      }
+    } catch (ex) {
+      // 6. Handle Exceptions (matches your show_message logic)
+      print("Exception in ApiServices.updateRemoteJobCard(): ${ex.toString()}");
+
+      // If you have your custom show_message:
+      // show_message("${ex.toString()}");
+
+      return null;
+    }
+  }
+
+  Future<ResponseRoot?> getRemoteSession(String getRemoteSessionId) async {
+    try {
+      // 1. Prepare URL using string interpolation
+      final String url =
+          "${AppEnvironment.baseUrl}analyze/job-card-session/$getRemoteSessionId/remote-session/";
+
+      // 2. Execute GET Request
+      // Headers include the JWT token from your App constants
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // 3. Get the response body
+      final String data = response.body;
+
+      // 4. Check status code and deserialize
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final Map<String, dynamic> decodedData = jsonDecode(data);
+        return ResponseRoot.fromJson(decodedData);
+      } else {
+        print("API Error: ${response.statusCode} - $data");
+        return null;
+      }
+    } catch (ex) {
+      // 5. Exception Handling (matches your show_message logic)
+      print("Exception in ApiServices.getRemoteSession(): ${ex.toString()}");
+
+      // If you have a custom UI alert:
+      // show_message(ex.toString());
+
+      return null;
+    }
+  }
+
+  Future<ResponseRoot?> getExpertRequestList(String expertUser) async {
+    try {
+      // 1. Initialize result object (matching C# logic)
+      ResponseRoot result = ResponseRoot();
+
+      // 2. Prepare URL with query parameter
+      final String url =
+          "${AppEnvironment.baseUrl}analyze/expert-user-status-list/?expert_user=$expertUser";
+
+      // 3. Execute GET Request
+      // Headers include the JWT token from your App constants
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // 4. Get the response body
+      final String data = response.body;
+
+      // 5. Deserialize the response
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final Map<String, dynamic> decodedData = jsonDecode(data);
+        result = ResponseRoot.fromJson(decodedData);
+        return result;
+      } else {
+        print("API Error: ${response.statusCode} - $data");
+        // You could handle specific status codes here if needed
+        return null;
+      }
+    } catch (ex) {
+      // 6. Exception Handling (matches your show_message logic)
+      print(
+          "Exception in ApiServices.getExpertRequestList(): ${ex.toString()}");
+
+      // Equivalent to your show_message call
+      // show_message("${ex.toString()}");
+
+      return null;
+    }
+  }
+
+  Future<ResponseJobCardModel?> acceptRemoteRequest(
+      ResponseJobCardModel acceptOrDeclineModel,
+      String jobCardRequestId,
+      String remoteSessionId) async {
+    try {
+      // 1. Prepare the URL with interpolated path parameters
+      final String url =
+          "${AppEnvironment.baseUrl}analyze/job-card-session/$jobCardRequestId/remote-session/$remoteSessionId/";
+
+      // 2. Serialize the model to JSON
+      final String jsonPayload = jsonEncode(acceptOrDeclineModel.toJson());
+
+      // 3. Execute the PUT request
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'JWT ${App.jwtToken}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonPayload,
+      );
+
+      // 4. Read the response body
+      final String data = response.body;
+
+      // 5. Check status and deserialize
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final Map<String, dynamic> decodedData = jsonDecode(data);
+        return ResponseJobCardModel.fromJson(decodedData);
+      } else {
+        print("API Error: ${response.statusCode} - $data");
+        return null;
+      }
+    } catch (e) {
+      // 6. Handle Exceptions (matches your catch-return-null logic)
+      print("Exception in acceptRemoteRequest: ${e.toString()}");
+      return null;
+    }
+  }
+
+  Future<String?> getDongleList(String token) async {
+    try {
+      // 1. Construct the full URL
+      final String url =
+          "${AppEnvironment.baseUrl}devices/list/obd-dongles/active/";
+
+      // 2. Execute the GET request
+      // Using await instead of .Result to keep the UI responsive
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'JWT $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // 3. Get the raw response body
+      final String data = response.body;
+
+      // 4. Return the data string (matching your C# return type)
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return data;
+      } else {
+        print("API Error: ${response.statusCode} - $data");
+        return null;
+      }
+    } catch (ex) {
+      // 5. Handle Exceptions (matches your show_message logic)
+      print("Exception in ApiServices.getDongleList(): ${ex.toString()}");
+
+      // If you have a custom show_message function:
+      // show_message(ex.toString());
+
       return null;
     }
   }
 
   Future<dynamic> getData(String token) async {
     try {
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.getData);
+      // 1. Prepare Request
+      final url = Uri.parse("${AppEnvironment.baseUrl}oem/get-data");
+
+      // 2. Execute GET Request
+      // Headers include the JWT token as per your C# logic
       final response = await http.get(
         url,
         headers: {
@@ -989,25 +2789,38 @@ STATUS CODE: ${response.statusCode}
         },
       );
 
+      // 3. Read Response Body
+      final String data = response.body;
+
+      // 4. Handle Unauthorized (401)
       if (response.statusCode == 401) {
-        // Token expired
+        // Equivalent to show_message("Token has expired")
         print("Token has expired");
-        return null;
+        // You can call your UI alert here
       }
 
-      // Parse response dynamically
-      final data = json.decode(response.body);
-      return data;
-    } catch (e, stackTrace) {
-      print("Error in getData: $e\n$stackTrace");
+      // 5. Deserialize to dynamic (Map or List)
+      final dynamic list = jsonDecode(data);
+
+      return list;
+    } catch (ex) {
+      // 6. Handle Exceptions (Matches your UserDialogs.Alert logic)
+      print("Alert Get dat api: ${ex.toString()}");
+
+      // If using a dialog library in Flutter:
+      // showAlertDialog(context, "Alert Get dat api", ex.toString());
+
       return null;
     }
   }
 
   Future<List<IVNResult>?> getIvnDtc(String token, int id) async {
     try {
+      // 1. Prepare Request
       final url = Uri.parse(
-          '${AppEnvironment.baseUrl}ivn/get-ivn-dtc-datasets/?id=$id');
+          "${AppEnvironment.baseUrl}ivn/get-ivn-dtc-datasets/?id=$id");
+
+      // 2. Execute GET Request
       final response = await http.get(
         url,
         headers: {
@@ -1016,815 +2829,1828 @@ STATUS CODE: ${response.statusCode}
         },
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return IvnDtc.fromJson(data).results;
-      } else if (response.statusCode == 401) {
-        print("Token has expired");
-        return null;
+      // 3. Read Response Body
+      final String data = response.body;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 4. Parse the wrapper object (IvnDtc)
+        final decodedData = jsonDecode(data);
+        final ivnDtcWrapper = IvnDtc.fromJson(decodedData);
+
+        // 5. Return the nested results list
+        return ivnDtcWrapper.results;
       } else {
-        print("Error: ${response.statusCode} - ${response.body}");
+        print("API Error: ${response.statusCode} - $data");
         return null;
       }
-    } catch (e, stackTrace) {
-      print("Exception in getIvnDtc: $e\n$stackTrace");
+    } catch (ex) {
+      // 6. Handle Exceptions (Matches your UserDialogs.Alert logic)
+      print("Alert Get ivn dtc api: ${ex.toString()}");
+
+      // If you want to show a dialog in Flutter:
+      // showAlertDialog(context, "Alert Get dat api", ex.toString());
+
       return null;
     }
   }
 
-  Future<PIDModel> getIVNPidDataset(int datasetId, String jwtToken) async {
-    final pidModel = PIDModel();
+  Future<List<PidResult>?> getIvnPid(String token, int id) async {
     try {
+      // 1. Prepare the URL with the query parameter
       final url = Uri.parse(
-          AppEnvironment.baseUrl + AppURLs.getIVNPidDataset(datasetId));
+          "${AppEnvironment.baseUrl}ivn/get-ivn-pid-datasets/?id=$id");
 
+      // 2. Set up headers with JWT token
+      final headers = {
+        'Authorization': 'JWT $token',
+        'Content-Type': 'application/json',
+      };
+
+      // 3. Execute the GET request
+      // We use await instead of .Result to prevent blocking the UI thread
+      final response = await http.get(url, headers: headers);
+
+      // 4. Extract the response body
+      final String data = response.body;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 5. Parse the JSON string into our PIDModel
+        final Map<String, dynamic> decodedData = jsonDecode(data);
+
+        // Assuming PIDModel has a fromJson factory constructor
+        final pidModel = PidModel.fromJson(decodedData);
+
+        // 6. Return the results list
+        return pidModel.results;
+      } else {
+        // Handle non-success status codes
+        print("API Error: ${response.statusCode}");
+        return null;
+      }
+    } catch (ex) {
+      // 7. Exception Handling (Matches your UserDialogs.Alert logic)
+      // You can use a package like flutter_styled_toast or a built-in AlertDialog
+      print("Alert Get dat api: ${ex.toString()}");
+
+      // Example of how you might handle the alert in Flutter:
+      // showDialog(context: context, builder: (_) => AlertDialog(title: Text("Alert"), content: Text(ex.toString())));
+
+      return null;
+    }
+  }
+
+  Future<DTCMaskRoot?> getDtcMask(String token) async {
+    try {
+      // 1. Prepare the URL
+      final url = Uri.parse("${AppEnvironment.baseUrl}dtc_mask/dtc-mask/");
+
+      // 2. Execute the GET Request
+      // We use await to handle the response asynchronously
       final response = await http.get(
         url,
         headers: {
-          'Authorization': 'JWT $jwtToken',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      final data = response.body;
-
-      if (response.statusCode == 200) {
-        return PIDModel.fromJson(json.decode(data));
-      } else {
-        pidModel.message = "${response.statusCode} : ${data}";
-        return pidModel;
-      }
-    } catch (e) {
-      pidModel.message = "Exception in getIVNPidDataset: $e";
-      return pidModel;
-    }
-  }
-
-  Future<DTCMaskRoot?> getDTCMask(String token, String baseUrl) async {
-    try {
-      final client = http.Client();
-      final response = await client.get(
-        Uri.parse(AppEnvironment.baseUrl + AppURLs.getDTCMask),
-        headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'JWT $token',
+          'Content-Type': 'application/json',
         },
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return DTCMaskRoot.fromJson(data);
+      // 3. Read the response body
+      final String data = response.body;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 4. Deserialize JSON to DTCMaskRoot
+        final decodedData = jsonDecode(data);
+        return DTCMaskRoot.fromJson(decodedData);
       } else {
-        print('Error: ${response.statusCode} - ${response.body}');
+        print("API Error: ${response.statusCode} - $data");
         return null;
       }
-    } catch (e) {
-      print('Exception: $e');
+    } catch (ex) {
+      // 5. Exception Handling
+      print("Exception in getDtcMask: ${ex.toString()}");
+
+      // Equivalent to your C# catch block logic
       return null;
     }
   }
 
-  Future<DtcMainModel> getDtcs(int datasetId) async {
-    DtcMainModel results = DtcMainModel(message: ''); // default empty
-    final token = await AppPreferences.getAccessToken();
+  Future<List<DtcResults>?> getDtc(String token, int id) async {
+    String data = '';
     try {
-      final client = http.Client();
-      final url = AppEnvironment.baseUrl + AppURLs.getDtcs(datasetId);
+      List<DtcResults> results = [];
 
-      final response = await client.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $token',
-        },
-      );
+      // 1. Check Connectivity (Equivalent to Microsoft.Maui.Networking.NetworkAccess)
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      final data = response.body;
-      print('Get All Dtcs API\n$url\nResponse: $data');
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare Request
+        final url = Uri.parse(
+            "${AppEnvironment.baseUrl}datasets/get-dtc-datasets/?id=$id");
 
-      if (response.statusCode == 200) {
-        results = DtcMainModel.fromJson(jsonDecode(data));
-        results.message = 'success';
+        // 3. Execute GET Request
+        final response = await http.get(
+          url,
+          headers: {
+            'Authorization': 'JWT $token',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        data = response.body;
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // 4. Parse using Wrapper Model (DtcMainModel)
+          final decodedData = jsonDecode(data);
+          results = DtcMainModel.fromJson(decodedData).results ?? [];
+        }
       } else {
-        results.message = '${response.statusCode}\n${data}';
+        // 5. Offline Logic (Equivalent to ("dtcjson").GetData() extension)
+        // Assuming you have a helper to get local data, like SharedPreferences
+        data = await AppPreferences.getString("dtcjson") ?? "";
+
+        if (data.isNotEmpty) {
+          final List<dynamic> decodedList = jsonDecode(data);
+          results =
+              decodedList.map((item) => DtcResults.fromJson(item)).toList();
+        }
       }
 
       return results;
-    } catch (e) {
-      results.message = 'Exception in getDtcs(): $e';
-      return results;
+    } catch (ex) {
+      // 6. Handle Exceptions (Matches UserDialogs logic)
+      print("Alert Get dat api: ${ex.toString()}");
+
+      // If you have a global navigation key for dialogs:
+      // show_alert_dialog("Alert Get dat api", ex.toString());
+
+      return null;
     }
   }
 
   Future<List<ResultUnlock>?> getUnlockData() async {
     try {
-      var connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        return null;
-      }
+      // 1. Check Connectivity (Equivalent to Microsoft.Maui.Networking.NetworkAccess)
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      final response = await client
-          .get(Uri.parse(AppEnvironment.baseUrl + AppURLs.getECUUnlockData));
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare URL
+        final url = Uri.parse("${AppEnvironment.baseUrl}models/unlock-list/");
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return UnlockEcuModel.fromJson(data).results;
+        // 3. Execute GET Request
+        // Using a local client instance as per your C# 'client = new HttpClient()'
+        final response = await http.get(
+          url,
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        // 4. Read Response Body
+        final String data = response.body;
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // 5. Deserialize using the wrapper model (UnlockEcuModel)
+          final decodedData = jsonDecode(data);
+          final unlockEcuModel = UnlockEcuModel.fromJson(decodedData);
+
+          return unlockEcuModel.results;
+        } else {
+          return null;
+        }
       } else {
+        // No internet access
         return null;
       }
-    } catch (e) {
-      print('Error in getUnlockData: $e');
+    } catch (ex) {
+      // Exception handling - returning null to match C# logic
+      print("Exception in getUnlockData: ${ex.toString()}");
       return null;
     }
   }
 
-  // Future<GdModelGD> getGD(int submodelId) async {
-  //   GdModelGD result = GdModelGD();
-  //   final token =await AppPreferences.getAccessToken();
-  //   try {
-
-  //       final url =
-  //           Uri.parse(AppEnvironment.baseUrl + AppURLs.getGD(submodelId));
-  //       final response = await http.get(
-  //         url,
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           'Authorization': 'JWT $token',
-  //         },
-  //       );
-
-  //       final data = response.body;
-
-  //       if (response.statusCode == 200) {
-  //         result = GdModelGD.fromJson(json.decode(data));
-  //         result.message = "success";
-  //       } else {
-  //         result.message = "${response.statusCode}\n$data";
-  //       }
-
-  //     return result;
-  //   } catch (ex) {
-  //     result.message = "Exception in getGD(): ${ex.toString()}";
-  //     return result;
-  //   }
-  // }
-
-  Future<GdModelGD> getGD(int submodelId) async {
-    GdModelGD result = GdModelGD(message: ''); // initialize message safely
-    final token = await AppPreferences.getAccessToken();
-
+  Future<GdModelGd?> getGd(
+      String token, String dtcPCode, int subModelId) async {
     try {
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.getGD(submodelId));
-      print("🔹 GET URL: $url"); // print URL
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      final response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $token',
-        },
-      );
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare URL with query parameters
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/gdauthor/gd/gd-by-year_id-dtc_id/?dtc_code=$dtcPCode&name=$subModelId";
 
-      print("🔹 Response Status: ${response.statusCode}");
-      print("🔹 Response Body: ${response.body}");
+        // 3. Execute GET Request
+        final response = await http.get(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT $token',
+            'Content-Type': 'application/json',
+          },
+        );
 
-      final data = response.body;
+        final String data = response.body;
 
-      if (response.statusCode == 200) {
-        result = GdModelGD.fromJson(json.decode(data));
-        result.message = "success";
-        print("✅ GD parsed successfully: ${result.results?.length ?? 0} items");
+        // 4. Console Print (Equivalent to Debug.WriteLine)
+        print("GD API Request URL: $url");
+        print("GD API RESPONSE: $data");
+
+        // 5. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          final Map<String, dynamic> decodedData = jsonDecode(data);
+          return GdModelGd.fromJson(decodedData);
+        } else {
+          return null;
+        }
       } else {
-        result.message = "${response.statusCode}\n$data";
-        print("❌ Error fetching GD: ${result.message}");
+        // No Internet
+        return null;
       }
-
-      return result;
     } catch (ex) {
-      result.message = "Exception in getGD(): ${ex.toString()}";
-      print("⚠️ Exception in getGD(): ${ex.toString()}");
-      return result;
+      // 6. Exception Handling
+      print("Exception in ApiServices.getGd() : ${ex.toString()}");
+
+      // If you have a custom UI helper:
+      // show_message("Exception in ApiServices.getGd() : ${ex.toString()}");
+
+      return null;
     }
   }
 
   Future<String> readTextFile(String fileName) async {
     try {
-      // Make sure your file is in the assets folder and declared in pubspec.yaml
-      String text = await rootBundle.loadString('assets/json_files/$fileName');
+      // In Dart, you must provide the full path as declared in pubspec.yaml
+      // Replicating your "SanitasCore.JsonFiles" logic:
+      final String path = "assets/json_files/$fileName";
+
+      // rootBundle.loadString is the equivalent to StreamReader.ReadToEnd()
+      final String text = await rootBundle.loadString(path);
+
       return text;
     } catch (e) {
-      // In case of error, return empty string
-      return '';
+      // Matches your C# catch block logic
+      print("Error reading text file: $e");
+      return "";
     }
   }
 
   void showMessage(BuildContext context, String message) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Error"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Ok"),
-          ),
-        ],
-      ),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Error"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: const Text("Ok"),
+              onPressed: () {
+                // Closes the dialog
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Future<String> downloadFileContent(String url) async {
+  Future<String> readJsonFile(String jsonFileUrl) async {
     try {
-      final response = await http.get(Uri.parse(url));
+      // 1. Prepare and execute the GET request
+      // We use Uri.parse because http.get requires a Uri object, not just a string
+      final response = await http.get(Uri.parse(jsonFileUrl));
 
+      // 2. Handle the response
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Equivalent to respo.IsSuccessStatusCode
         return response.body;
       } else {
-        throw Exception("Failed to download file: ${response.body}");
+        // Equivalent to throwing an exception with the content string
+        throw Exception(response.body);
       }
-    } catch (e) {
-      // You can log the error or show a message
-      print("Exception in downloadFileContent: $e");
+    } catch (ex) {
+      // 3. Exception Handling
+      // Matches your C# catch block returning an empty string
+      print("Error reading JSON URL: $ex");
       return "";
     }
   }
 
-  Future<void> dtcRecord(
-      List<PostDtcRecord> pdr, String token, String jobCardId) async {
+  Future<void> dtcRecord(List<PostDtcRecord> pdr, String token, int jobCardId,
+      String datetime) async {
     try {
-      // Create request body
-      final obg = {'dtc': pdr.map((e) => e.toJson()).toList()};
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      final jsonBody = jsonEncode(obg);
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare the Request Body (Matches 'obg' object in C#)
+        final Map<String, dynamic> requestData = {
+          'created': datetime,
+          'dtc': pdr.map((item) => item.toJson()).toList(),
+        };
 
-      // POST request
-      final response = await http.post(
-        Uri.parse(AppEnvironment.baseUrl + AppURLs.dtcRecord(jobCardId)),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'JWT $token',
-        },
-        body: jsonBody,
-      );
+        final String jsonBody = jsonEncode(requestData);
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        // Successfully sent
-        print("DTC Record posted successfully");
-        print("Response: ${response.body}");
-      } else {
-        print("Failed to post DTC record: ${response.body}");
+        // 3. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$jobCardId/dtc-record/";
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonBody,
+        );
+
+        final String responseData = response.body;
+
+        // 5. Debug Logging (Matches Debug.WriteLine)
+        print("--- DTC Record API ---");
+        print("URL: $url");
+        print("REQUEST: $jsonBody");
+        print("RESPONSE: $responseData");
+        print("----------------------");
       }
-    } catch (e, stacktrace) {
-      // Show message equivalent
-      print("Exception in dtcRecord: $e");
-      print(stacktrace);
+    } catch (ex) {
+      // Matches your empty catch block logic
+      print("Exception in ApiServices.dtcRecord() : ${ex.toString()}");
     }
   }
 
-  Future<void> clearDtcRecord({
-    required List<ClearDtcRecord> records,
-    required String token,
-    required String jobCardId,
-    required String baseUrl,
-  }) async {
+  Future<void> clearDtcRecord1(List<PostDtcRecord> pdr, String token,
+      int jobCardId, String datetime) async {
     try {
-      final url =
-          Uri.parse(AppEnvironment.baseUrl + AppURLs.clearDtcRecord(jobCardId));
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      // Wrap list in an object if API expects it
-      final payload = {'dtc': records.map((e) => e.toJson()).toList()};
-      final body = jsonEncode(payload);
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare the Request Body (Matching your DtcC object in C#)
+        final Map<String, dynamic> requestData = {
+          'created': datetime,
+          'cleardtc': pdr.map((item) => item.toJson()).toList(),
+        };
 
-      final response = await http.post(
-        url,
-        headers: {
-          'Authorization': 'JWT $token',
-          'Content-Type': 'application/json',
-        },
-        body: body,
-      );
+        final String jsonBody = jsonEncode(requestData);
 
-      if (response.statusCode == 200) {
-        print('DTC cleared successfully: ${response.body}');
-      } else {
-        print('Failed to clear DTC: ${response.statusCode} ${response.body}');
+        // 3. Prepare the specific URL for clearing records
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$jobCardId/new/clear-record/";
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonBody,
+        );
+
+        final String responseData = response.body;
+
+        // 5. Console Print (Equivalent to Debug.WriteLine)
+        print("--- Clear DTC Record API ---");
+        print("URL: $url");
+        print("REQUEST: $jsonBody");
+        print("RESPONSE: $responseData");
       }
-    } catch (e) {
-      print('Exception while clearing DTC: $e');
+    } catch (ex) {
+      // Matches your empty catch block logic
+      print("Exception in ApiServices.clearDtcRecord1() : ${ex.toString()}");
     }
   }
 
-  Future<bool> pidWriteRecord({
-    required List<PidWriteRecordItem> records,
-    required String token,
-    required String jobCardId,
-    required String baseUrl,
-  }) async {
+  Future<void> postGdComment(GdCommentModel model, int jobCardId) async {
     try {
-      final url =
-          Uri.parse(AppEnvironment.baseUrl + AppURLs.pidWriteRecord(jobCardId));
+      // 1. Check Connectivity (Equivalent to Microsoft.Maui.Networking.NetworkAccess)
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      // Wrap the list in a parent object
-      final payload = PidWriteRecord(pidWriteRecords: records);
-      final body = jsonEncode(payload.toJson());
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare the Request Body
+        // Converts the Dart model to a JSON string
+        final String jsonBody = jsonEncode(model.toJson());
 
-      final response = await http.post(
-        url,
-        headers: {
+        // 3. Prepare the URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$jobCardId/gd/";
+
+        // 4. Execute POST Request
+        // Uses App.jwtToken for the Authorization header
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT ${App.jwtToken}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonBody,
+        );
+
+        final String responseData = response.body;
+
+        // 5. Console Print (Equivalent to Debug.WriteLine)
+        print("--- Gd Record API ---");
+        print("URL: $url");
+        print("REQUEST: $jsonBody");
+        print("RESPONSE: $responseData");
+        print("---------------------");
+      }
+    } catch (ex) {
+      // Matches your empty catch block logic
+      print("Exception in ApiServices.postGdComment() : ${ex.toString()}");
+    }
+  }
+
+  Future<void> clearDtcRecord(
+      List<ClearDtcRecord> cdr, String token, int jobCardId) async {
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare Headers
+        final headers = {
           'Authorization': 'JWT $token',
           'Content-Type': 'application/json',
-        },
-        body: body,
-      );
+        };
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return true;
-      } else {
-        print('Failed to write PID: ${response.statusCode} ${response.body}');
-        return false;
+        // 3. Replicate the bracket removal logic:
+        // C# code: JsonConvert.SerializeObject(CDR).Replace("]", "").Replace("[", "")
+        // This sends the object(s) without the surrounding array brackets.
+        String jsonBody = jsonEncode(cdr);
+        String strippedJson = jsonBody.replaceAll('[', '').replaceAll(']', '');
+
+        // 4. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$jobCardId/clear-record/";
+
+        // 5. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: strippedJson,
+        );
+
+        // 6. Handle Response
+        final String responseData = response.body;
+
+        // 7. Console Print (Equivalent to Debug.WriteLine)
+        print("--- Clear DTC Record API ---");
+        print("URL: $url");
+        print("REQUEST: $strippedJson");
+        print("RESPONSE: $responseData");
       }
-    } catch (e) {
-      print('Exception while writing PID: $e');
+    } catch (ex) {
+      // Empty catch as per your C# implementation
+      print("Exception in ApiServices.clearDtcRecord(): ${ex.toString()}");
+    }
+  }
+
+  Future<FreezeFrameAnalyzeResponse> analyzeFreezeFrame(
+      FreezeFrameAnalyze model, int sessionId) async {
+    // Initialize response object
+    FreezeFrameAnalyzeResponse freezeFrameAnalyzeResponse =
+        FreezeFrameAnalyzeResponse();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare Request Data
+        final String jsonBody = jsonEncode(model.toJson());
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$sessionId/freeze-frame/";
+
+        // 3. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT ${App.jwtToken}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonBody,
+        );
+
+        final String data = response.body;
+
+        // 4. Debug Logging
+        print(
+            "Analyze FreezeFrame API\nURL: $url\nREQUEST: $jsonBody\nRESPONSE: $data");
+
+        // 5. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          final Map<String, dynamic> decodedData = jsonDecode(data);
+          freezeFrameAnalyzeResponse =
+              FreezeFrameAnalyzeResponse.fromJson(decodedData);
+          freezeFrameAnalyzeResponse.message = "success";
+        } else {
+          // Equivalent to ExtractErrorMessage(Data)
+          String errorContent = extractErrorMessage(data);
+          freezeFrameAnalyzeResponse.message =
+              "ApiServices.analyzeFreezeFrame() : ${response.statusCode}\n$errorContent";
+        }
+      } else {
+        freezeFrameAnalyzeResponse.message =
+            "Please check internet connection.";
+      }
+    } catch (ex) {
+      freezeFrameAnalyzeResponse.message =
+          "Exception in ApiServices.analyzeFreezeFrame() : ${ex.toString()}";
+    }
+
+    return freezeFrameAnalyzeResponse;
+  }
+
+// Helper to mimic your C# ExtractErrorMessage logic
+  String extractErrorMessage(String data) {
+    try {
+      var decoded = jsonDecode(data);
+      if (decoded is Map && decoded.containsKey('detail')) {
+        return decoded['detail'].toString();
+      }
+      return data;
+    } catch (_) {
+      return data;
+    }
+  }
+
+  Future<bool> pidWriteRecord(
+      List<PidWriteRecordItem> pwr, String token, int jobCardId) async {
+    bool returnValue = false;
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare the Request Wrapper (Matching the 'obg' object in C#)
+        final Map<String, dynamic> requestBody = {
+          'pid_write_records': pwr.map((item) => item.toJson()).toList(),
+        };
+
+        final String json = jsonEncode(requestBody);
+
+        // 3. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$jobCardId/pid-write-record/";
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT $token',
+            'Content-Type': 'application/json',
+          },
+          body: json,
+        );
+
+        final String data = response.body;
+
+        // 5. Debug Print (Equivalent to Debug.WriteLine)
+        print("--- Pid Write Record API ---");
+        print("URL: $url");
+        print("REQUEST: $json");
+        print("RESPONSE: $data");
+
+        // 6. Check Status Codes (OK = 200, Created = 201)
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          returnValue = true;
+        } else {
+          returnValue = false;
+        }
+      }
+      return returnValue;
+    } catch (ex) {
+      print("Exception in ApiServices.pidWriteRecord(): ${ex.toString()}");
       return false;
     }
   }
 
-  /// Returns true if API call is successful, false otherwise
   Future<bool> pidLiveRecord(
-    List<PIDLiveRecord> plr,
-    String token,
-    String jobCardId,
-  ) async {
+      List<PidLiveRecord> plr, String token, int jobCardId) async {
     try {
-      final uri = Uri.parse(
-        AppEnvironment.baseUrl + AppURLs.pidliveRecord(jobCardId),
-      );
+      bool returnValue = false;
 
-      // Serialize list to JSON
-      String jsonString = jsonEncode(plr.map((e) => e.toJson()).toList());
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      // ---- IMPORTANT ----
-      // C# logic:
-      // JsonConvert.SerializeObject(PLR).Substring(1)
-      // then remove last char
-      //
-      // This converts: [ {...} ]  -->  {...}
-      //
-      // Doing the same in Dart:
-      if (jsonString.startsWith('[') && jsonString.endsWith(']')) {
-        jsonString = jsonString.substring(1, jsonString.length - 1);
-      }
-
-      final response = await http.post(
-        uri,
-        headers: {
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare Headers
+        final headers = {
           'Authorization': 'JWT $token',
           'Content-Type': 'application/json',
-        },
-        body: jsonString,
-      );
+        };
 
-      print('RECORD RESPONSE ${response.body}');
+        // 3. Replicate the Substring logic:
+        // C# code: JsonConvert.SerializeObject(PLR).Substring(1).Substring(0, length - 1)
+        // This removes the [ and ] from the start and end of the JSON string.
+        String fullJson = jsonEncode(plr.map((item) => item.toJson()).toList());
+        String jValue = fullJson.substring(1, fullJson.length - 1);
 
-      if (response.statusCode == 400) {
-        return false;
+        // 4. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/new/job-card-session/$jobCardId/pid-live-record/";
+
+        // 5. Execute POST Request
+        // Using await instead of .Result to keep the app responsive
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: jValue,
+        );
+
+        final String responseData = response.body;
+
+        // 6. Debug/Console Logging
+        print("--- Pid Live Record API ---");
+        print("URL: $url");
+        print("REQUEST: $jValue");
+        print("RESPONSE: $responseData");
+        print("RECORD RESPONSE $responseData");
+
+        // 7. Handle Status Codes
+        if (response.statusCode == 400) {
+          // Equivalent to HttpStatusCode.BadRequest
+          returnValue = false;
+        } else {
+          // Your C# logic defaults to true for any non-400 status
+          returnValue = true;
+        }
       }
 
-      return true;
-    } catch (e, stackTrace) {
-      print('ERROR: $e');
-      print(stackTrace);
+      return returnValue;
+    } catch (ex) {
+      // Matches your C# catch block returning false
+      print("Exception in ApiServices.pidLiveRecord(): ${ex.toString()}");
       return false;
     }
   }
 
-  Future<bool> pidSnapshotRecord(
-    List<SnapshotRecord> snapshotRecords,
-    String token,
-    String jobCardId,
-  ) async {
+  Future<bool> pidSnapshotRecord(List<SnapshotRecord> sr, String token,
+      int jobCardId, String datetime) async {
     try {
-      final uri = Uri.parse(
-        AppEnvironment.baseUrl + AppURLs.pidSnapShotRecord(jobCardId),
-      );
+      bool returnValue = false;
 
-      // Create object same as C#
-      final bodyObject = {
-        'pid_snapshot': snapshotRecords.map((e) => e.toJson()).toList(),
-      };
+      // 1. Check Connectivity (Equivalent to Microsoft.Maui.Networking.NetworkAccess)
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      final response = await http.post(
-        uri,
-        headers: {
-          'Authorization': 'JWT $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(bodyObject),
-      );
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare the Request Body (Wrapper Object)
+        final Map<String, dynamic> requestBody = {
+          'created': datetime,
+          'pid_snapshot': sr.map((item) => item.toJson()).toList(),
+        };
 
-      print('SNAPSHOT RESPONSE ${response.body}');
+        final String jsonBody = jsonEncode(requestBody);
 
-      // C# checks for HttpStatusCode.Created (201)
-      return response.statusCode == 201;
-    } catch (e, stackTrace) {
-      print('PID SNAPSHOT ERROR: $e');
-      print(stackTrace);
+        // 3. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$jobCardId/pid-snapshot-record/";
+
+        // 4. Execute POST Request
+        // We use await here instead of .Result to keep the UI thread responsive
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonBody,
+        );
+
+        final String responseData = response.body;
+
+        // 5. Debug and Console Logging (Equivalent to Debug.WriteLine)
+        print("--- Pid Snapshot Record API ---");
+        print("URL: $url");
+        print("REQUEST: $jsonBody");
+        print("RESPONSE: $responseData");
+        print("SNAPSHOT RESPONSE $responseData");
+
+        // 6. Handle Status Code (Checks specifically for 201 Created)
+        if (response.statusCode == 201) {
+          returnValue = true;
+        } else {
+          returnValue = false;
+        }
+      }
+
+      return returnValue;
+    } catch (ex) {
+      // Matches your C# catch block logic returning false
+      print("Exception in ApiServices.pidSnapshotRecord(): ${ex.toString()}");
       return false;
     }
   }
 
-  /// Returns true on success (same behavior as intended C#)
   Future<bool> flashRecord(
-    List<FlashRecord> records,
-    String token,
-    String jobCardId,
-  ) async {
+      List<FlashRecord> fr, String token, int jobCardId) async {
+    bool returnValue = false;
     try {
-      final uri = Uri.parse(
-        AppEnvironment.baseUrl + AppURLs.flashRecord(jobCardId),
-      );
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      // Serialize list to JSON
-      String jsonString = jsonEncode(records.map((e) => e.toJson()).toList());
-
-      // ---- SAME AS C# ----
-      // JsonConvert.SerializeObject(FR).Replace("]", "").Replace("[", "")
-      if (jsonString.startsWith('[') && jsonString.endsWith(']')) {
-        jsonString = jsonString.substring(1, jsonString.length - 1);
-      }
-
-      final response = await http.post(
-        uri,
-        headers: {
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare Headers
+        final headers = {
           'Authorization': 'JWT $token',
           'Content-Type': 'application/json',
-        },
-        body: jsonString,
-      );
+        };
 
-      print('FLASH RECORD RESPONSE: ${response.body}');
+        // 3. Replicate bracket stripping logic
+        // C# code: JsonConvert.SerializeObject(FR).Replace("]", "").Replace("[", "")
+        String jsonBody = jsonEncode(fr.map((item) => item.toJson()).toList());
+        String jValue = jsonBody.replaceAll('[', '').replaceAll(']', '');
 
-      // Success if HTTP 200 or 201
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (e, stackTrace) {
-      print('FLASH RECORD ERROR: $e');
-      print(stackTrace);
+        // 4. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$jobCardId/flash-record/";
+
+        // 5. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: jValue,
+        );
+
+        final String responseData = response.body;
+
+        // 6. Debug Printing
+        print("--- Flash Record API ---");
+        print("URL: $url");
+        print("REQUEST: $jValue");
+        print("RESPONSE: $responseData");
+
+        // 7. Status Code Logic
+        // Note: Your C# logic says "if NOT OK OR NOT Created, ReturnValue = true"
+        // I have kept this logic exactly as you wrote it.
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          returnValue = true;
+        } else {
+          returnValue = false;
+        }
+      }
+
+      return returnValue;
+    } catch (ex) {
+      // Matches your C# catch block returning false
+      print("Exception in ApiServices.flashRecord(): ${ex.toString()}");
+      return false;
+    }
+  }
+
+  Future<bool> routineTestRecord(List<RoutineTestAnalyzeModel> fr, String token,
+      int jobCardSessionId) async {
+    bool returnValue = false;
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare the Root Model (Equivalent to RoutineTestAnalyzeRootModel)
+        final Map<String, dynamic> rootModel = {
+          'routine_test': fr.map((item) => item.toJson()).toList(),
+        };
+
+        final String jsonBody = jsonEncode(rootModel);
+
+        // 3. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$jobCardSessionId/routine-test/";
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonBody,
+        );
+
+        final String responseData = response.body;
+
+        // 5. Debug Logging (Equivalent to Debug.WriteLine)
+        print("--- Routine Test Analyze API ---");
+        print("URL: $url");
+        print("REQUEST: $jsonBody");
+        print("RESPONSE: $responseData");
+
+        // 6. Status Code Logic
+        // Note: Your C# code returns 'true' if the status is NOT 200 and NOT 201.
+        // I have preserved this specific logic.
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          returnValue = true;
+        } else {
+          returnValue = false;
+        }
+      }
+
+      return returnValue;
+    } catch (ex) {
+      // Matches your C# catch block returning false
+      print("Exception in ApiServices.routineTestRecord(): ${ex.toString()}");
+      return false;
+    }
+  }
+
+  Future<bool> postActuatorTestResult(
+      ActuatorTestAnalyzeModel model, int jobCardSessionId) async {
+    bool returnValue = false;
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare the Root Model (Wraps single model in a list)
+        final Map<String, dynamic> rootModel = {
+          'actuator': [model.toJson()],
+        };
+
+        final String jsonBody = jsonEncode(rootModel);
+
+        // 3. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/analyze/job-card-session/$jobCardSessionId/actuator/";
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT ${App.jwtToken}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonBody,
+        );
+
+        final String responseData = response.body;
+
+        // 5. Debug Logging
+        print("--- Actuator Test Analyze API ---");
+        print("URL: $url");
+        print("REQUEST: $jsonBody");
+        print("RESPONSE: $responseData");
+
+        // 6. Handle Response Status
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          returnValue = true;
+        } else {
+          returnValue = false;
+        }
+      }
+
+      return returnValue;
+    } catch (ex) {
+      // Matches your C# catch block returning false
+      print(
+          "Exception in ApiServices.postActuatorTestResult(): ${ex.toString()}");
       return false;
     }
   }
 
   Future<bool> closeJobCard(
-    List<ResCloseSession> resCloses,
-    String token,
-    String jobCardId,
-  ) async {
+      List<ResCloseSession> resCloses, String token, String jobCardId) async {
     try {
-      // ✅ Same URI for PUT and GET (as in C#)
-      final uri = Uri.parse(
-        AppEnvironment.baseUrl + AppURLs.closeJobCard(jobCardId),
+      bool returnValue;
+
+      // 1. Prepare Headers using App.jwtToken
+      final headers = {
+        'Authorization': 'JWT ${App.jwtToken}',
+        'Content-Type': 'application/json',
+      };
+
+      // 2. Replicate bracket stripping logic
+      // C# code: JsonConvert.SerializeObject(resCloses).Replace("]", "").Replace("[", "")
+      String jsonString = jsonEncode(resCloses.map((i) => i.toJson()).toList());
+      String jValue = jsonString.replaceAll('[', '').replaceAll(']', '');
+
+      // 3. Perform PUT Request
+      // Note: In your C# code, this isn't awaited/resulted, but in Dart
+      // it's safer to let it fire before checking the GET status.
+      final String baseUrl = AppEnvironment.baseUrl;
+      final String url =
+          "${baseUrl}analyze/job-card-session/$jobCardId/close-session/";
+
+      // We trigger the PUT (mimicking your PutAsync call)
+      http.put(
+        Uri.parse(url),
+        headers: headers,
+        body: jValue,
       );
 
-      // Serialize list → JSON
-      String jsonString = jsonEncode(resCloses.map((e) => e.toJson()).toList());
-
-      // SAME trimming logic as C#
-      if (jsonString.startsWith('[') && jsonString.endsWith(']')) {
-        jsonString = jsonString.substring(1, jsonString.length - 1);
-      }
-
-      // ---------- PUT: close session ----------
-      await http.put(
-        uri,
-        headers: {
-          'Authorization': 'JWT $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonString,
-      );
-
-      // ---------- GET: verify close session ----------
+      // 4. Perform GET Request (This is what determines your ReturnValue)
       final response = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'JWT $token',
-        },
+        Uri.parse(url),
+        headers: headers,
       );
 
+      // 5. Handle Response
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        print('CLOSE SESSION RESPONSE: ${response.body}');
-        return true;
-      }
-
-      return false;
-    } catch (e, stackTrace) {
-      print('CLOSE JOB CARD ERROR: $e');
-      print(stackTrace);
-      return false;
-    }
-  }
-
-  Future<FlashRecordModel> getFlashRecord() async {
-    FlashRecordModel result = FlashRecordModel();
-    final token = AppPreferences.getAccessToken();
-    try {
-      // ✅ Check internet connectivity (equivalent to Connectivity.Current.NetworkAccess)
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        result.message = 'Please check internet connection.';
-        return result;
-      }
-
-      final uri = Uri.parse(
-        '${AppEnvironment.baseUrl}flash/flash/',
-      );
-
-      final response = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'JWT $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      final data = response.body;
-
-      print('$uri\n\nRESPONSE:\n$data');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        result = FlashRecordModel.fromJson(jsonDecode(data));
-        result.message = 'success';
+        // Equivalent to response.IsSuccessStatusCode
+        final String data = response.body;
+        print("Close Session Data: $data");
+        returnValue = true;
       } else {
-        result.message =
-            '${response.statusCode}\n${deserializeErrorModel(data)}';
+        returnValue = false;
       }
 
-      return result;
-    } catch (e) {
-      result.message = e.toString();
-      return result;
+      return returnValue;
+    } catch (ex) {
+      // 6. Exception Handling
+      // Replicates your show_message call
+      //showMessage("Error: ${ex.toString()}\n\n$stackTrace" as BuildContext);
+      return false;
     }
   }
 
-  String deserializeErrorModel(String data) {
+  Future<bool> closeRemoteSession() async {
     try {
-      final json = jsonDecode(data);
-      final errorModel = ErrorModel.fromJson(json);
-      return errorModel.error ?? '';
-    } catch (e) {
-      return '';
-    }
-  }
+      bool returnValue;
 
-  Future<IorTestModel> getIorTest() async {
-    IorTestModel result = IorTestModel();
-    final token = await AppPreferences.getAccessToken();
-    try {
-      // ✅ Check internet connectivity
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        result.message = 'Please check internet connection.';
-        return result;
-      }
+      // 1. Prepare Headers (Using App.jwtToken)
+      final headers = {
+        'Authorization': 'JWT ${App.jwtToken}',
+        'Content-Type': 'application/json',
+      };
 
-      final uri = Uri.parse(
-        '${AppEnvironment.baseUrl}ior-test/ior-test-list/',
+      // 2. Prepare URL (Using App.remoteSessionId)
+      final String url =
+          "${AppEnvironment.baseUrl}analyze/remote-session/${App.remoteSessionId}/close-session/";
+
+      // 3. Execute PUT Request
+      // Passing an empty string as the body to match string.Empty
+      final response = await http.put(
+        Uri.parse(url),
+        headers: headers,
+        body: '',
       );
 
-      final response = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'JWT $token',
-          'Content-Type': 'application/json',
-        },
-      );
+      // 4. Read response data
 
-      final data = response.body;
-
-      print('$uri\n\nRESPONSE:\n$data');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        result = IorTestModel.fromJson(jsonDecode(data));
-        result.message = 'success';
+      // 5. Check Status Codes (200 OK or 201 Created)
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        returnValue = true;
       } else {
-        result.message =
-            '${response.statusCode}\n${deserializeErrorModel(data)}';
+        returnValue = false;
       }
 
-      return result;
-    } catch (e) {
-      result.message = e.toString();
-      return result;
+      return returnValue;
+    } catch (ex) {
+      // 6. Error Handling
+      // Replicates your show_message call with stack trace
+      // showMessage("${ex.toString()}\n\n$stackTrace");
+      return false;
+    }
+  }
+
+  Future<IorTestModel> getIorTest(String token, int id) async {
+    // Initialize the results object
+    IorTestModel results = IorTestModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 2. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/ior-test/ior-test-list/";
+
+        // 3. Execute GET Request
+        final response = await http.get(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT $token',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        final String data = response.body;
+
+        // 4. Debug Logging
+        print("GET ROUTINE TEST API\nURL: $url\nRESPONSE: $data");
+
+        // 5. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string into the model
+          final Map<String, dynamic> decodedData = jsonDecode(data);
+          results = IorTestModel.fromJson(decodedData);
+          results.message = "success";
+        } else {
+          // API Error
+          String errorContent = extractErrorMessage(data);
+          results.message =
+              "ApiServices.getIorTest() : ${response.statusCode}\n$errorContent";
+        }
+      } else {
+        // No Internet
+        results.message = "Please check internet connection.";
+      }
+
+      return results;
+    } catch (ex) {
+      // Exception handling
+      results.message =
+          "Exception in ApiServices.getIorTest() : ${ex.toString()}";
+      return results;
     }
   }
 
   Future<ActuatorTestModel> getActuatorTest() async {
-    ActuatorTestModel model = ActuatorTestModel();
-    final token = await AppPreferences.getAccessToken();
+    // 1. Initialize the result object
+    ActuatorTestModel results = ActuatorTestModel();
+
     try {
-      // 🌐 Check Internet
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        model.message = "Please check internet connection.";
-        return model;
-      }
+      // 2. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      final url = Uri.parse(
-        AppEnvironment.baseUrl + AppURLs.getActuatorIorTest,
-      );
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 3. Prepare URL and Headers
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/ior-test/actuator-test-list/";
 
-      final response = await http.get(
-        url,
-        headers: {
-          "Authorization": "JWT $token",
-          "Content-Type": "application/json",
-        },
-      );
-
-      debugPrint("URL: $url");
-      debugPrint("RESPONSE: ${response.body}");
-
-      if (response.statusCode == 200) {
-        model = ActuatorTestModel.fromJson(jsonDecode(response.body));
-        model.message = "success";
-      } else {
-        model.message =
-            "${response.statusCode} - ${deserializeErrorModel(response.body)}";
-      }
-    } catch (e) {
-      debugPrint("GetActuatorTest Exception: $e");
-      model.message = e.toString();
-    }
-
-    return model;
-  }
-
-  Future<FreezeFrameModel> getFreezeFrameList() async {
-    FreezeFrameModel results = FreezeFrameModel();
-    final token = await AppPreferences.getAccessToken();
-    try {
-      // 🌐 Internet check
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        results.message = "Please check internet connection.";
-        return results;
-      }
-
-      final url =
-          Uri.parse(AppEnvironment.baseUrl + AppURLs.getFreezeFrameList);
-
-      final response = await http.get(
-        url,
-        headers: {
-          "Authorization": "JWT $token",
-          "Content-Type": "application/json",
-        },
-      );
-
-      debugPrint("$url\n\nRESPONSE:\n${response.body}");
-
-      if (response.statusCode == 200) {
-        results = FreezeFrameModel.fromJson(
-          jsonDecode(response.body),
+        // 4. Execute GET Request
+        // Using App.jwtToken as per your C# logic
+        final response = await http.get(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT ${App.jwtToken}',
+            'Content-Type': 'application/json',
+          },
         );
-        results.message = "success";
+
+        final String data = response.body;
+
+        // 5. Debug Logging
+        print("--- Actuator Test API ---");
+        print("URL: $url");
+        print("RESPONSE: $data");
+
+        // 6. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Deserialize JSON into the model
+          final Map<String, dynamic> decodedData = jsonDecode(data);
+          results = ActuatorTestModel.fromJson(decodedData);
+          results.message = "success";
+        } else {
+          // Handle API error
+          String errorDetail = extractErrorMessage(data);
+          results.message =
+              "ApiServices.getActuatorTest() : ${response.statusCode}\n$errorDetail";
+        }
       } else {
-        results.message =
-            "ApiServices.getFreezeFrameList() : ${response.statusCode}\n"
-            "${deserializeErrorModel(response.body)}";
+        // Handle No Internet
+        results.message = "Please check internet connection.";
       }
-    } catch (e) {
-      results.message = "Exception in ApiServices.getFreezeFrameList() : $e";
-      debugPrint(results.message);
+    } catch (ex) {
+      // Handle Exceptions
+      results.message =
+          "Exception in ApiServices.getActuatorTest() : ${ex.toString()}";
     }
 
     return results;
   }
 
-  Future<ListNumberRootModel> getListNumbers() async {
-    ListNumberRootModel results = ListNumberRootModel();
-    final token = await AppPreferences.getAccessToken();
+  Future<String> experNotfy(NotificationModel notificationModel,
+      NotificationM notificationModel1, String expertId) async {
     try {
-      // 🌐 Internet check
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        results.message = "Please check internet connection.";
-        return results;
-      }
+      // 1. Prepare the payload (NotificationRoot)
+      final Map<String, dynamic> notificationRoot = {
+        'to': '/topics/$expertId',
+        'data': notificationModel.toJson(),
+        // 'notification': notificationModel1.toJson(), // Uncomment if needed
+      };
 
-      final url = Uri.parse(AppEnvironment.baseUrl + AppURLs.getListNumbers);
+      final String jsonBody = jsonEncode(notificationRoot);
 
-      final response = await http.get(
-        url,
+      // 2. Execute POST Request to FCM Legacy Endpoint
+      await http.post(
+        Uri.parse("https://fcm.googleapis.com/fcm/send"),
         headers: {
-          "Authorization": "JWT $token",
-          "Content-Type": "application/json",
+          'Authorization':
+              'key== AAAA7_-LssA:APA91bG15iL62SoWaNGA2ZgQW-qUEAl0MvD9faziRdEyUPQXshylefQHGJw0H2RDDUrjG7Xcezi6fpbba5iLIrOK54peesX-UZ8PE84rVwsLBl2OwspO0urkQGFFseiJkhZc6W8QCuXG',
+          'Content-Type': 'application/json',
         },
+        body: jsonBody,
       );
 
-      debugPrint("$url\n\nRESPONSE:\n${response.body}");
+      // 3. Read response
 
-      if (response.statusCode == 200) {
-        results = ListNumberRootModel.fromJson(
-          jsonDecode(response.body),
-        );
-        results.message = "success";
-      } else {
-        results.message =
-            "${response.statusCode}\n${deserializeErrorModel(response.body)}";
-      }
-    } catch (e) {
-      results.message = "Exception : $e";
-      debugPrint(results.message);
+      // Returning empty string as per your C# logic
+      return "";
+    } catch (ex) {
+      // 4. Error Handling
+      // Replicates your show_message call with stack trace
+      // showMessage("${ex.toString()}\n\n$stackTrace");
+      return "";
     }
-
-    return results;
   }
 
-  Future<DoipConfigRootModel> getDoipConfiguration() async {
-    DoipConfigRootModel results = DoipConfigRootModel();
-    final token = await AppPreferences.getAccessToken();
+  Future<TicketListModel> getTicketList(int userId) async {
+    // 1. Initialize the response object
+    TicketListModel ticketListModel = TicketListModel();
+
     try {
-      // 🌐 Internet check
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        results.message = "Please check internet connection.";
-        return results;
-      }
+      // 2. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      final url =
-          Uri.parse(AppEnvironment.baseUrl + AppURLs.getDoipConfiguration);
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 3. Prepare URL with Query Parameter
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/workshop/get/ticket/?user=$userId";
 
-      final response = await http.get(
-        url,
-        headers: {
-          "Authorization": "JWT $token",
-          "Content-Type": "application/json",
-        },
-      );
-
-      debugPrint("$url\n\nRESPONSE:\n${response.body}");
-
-      if (response.statusCode == 200) {
-        results = DoipConfigRootModel.fromJson(
-          jsonDecode(response.body),
+        // 4. Execute GET Request
+        final response = await http.get(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'JWT ${App.jwtToken}',
+            'Content-Type': 'application/json',
+          },
         );
-        results.message = "success";
+
+        final String data = response.body;
+
+        // 5. Debug Logging (Equivalent to Debug.WriteLine)
+        print("Get Ticket List API\nURL: $url\nRESPONSE: $data");
+
+        // 6. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string into the model
+          final Map<String, dynamic> decodedData = jsonDecode(data);
+          ticketListModel = TicketListModel.fromJson(decodedData);
+          ticketListModel.message = "success";
+        } else {
+          // API Error
+          String errorContent = extractErrorMessage(data);
+          ticketListModel.message =
+              "ApiServices.getTicketList() : ${response.statusCode}\n$errorContent";
+        }
       } else {
-        results.message =
-            "${response.statusCode}\n${deserializeErrorModel(response.body)}";
+        // No Internet
+        ticketListModel.message = "Please check internet connection.";
       }
-    } catch (e) {
-      results.message = "Exception : $e";
-      debugPrint(results.message);
+    } catch (ex) {
+      // Exception handling
+      ticketListModel.message =
+          "Exception in ApiServices.getTicketList() : ${ex.toString()}";
     }
 
-    return results;
+    return ticketListModel;
   }
 
-  Future<Root> getPids(int? datasetId) async {
-    Root root = Root();
-    final token = await AppPreferences.getAccessToken();
+  Future<IssueModel> getIssueList() async {
+    // 1. Initialize the response object
+    IssueModel issueListModel = IssueModel();
 
-    debugPrint(
-        "DEBUG: Token value is -> '$token'"); // Look for null or empty string here
     try {
-      // 🌐 Internet check
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        root.message = "Please check internet connection.";
-        return root;
-      }
+      // 2. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
 
-      final url =
-          Uri.parse(AppEnvironment.baseUrl + AppURLs.getPids(datasetId));
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 3. Prepare URL
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/workshop/get-ticket-issue/";
 
-      final response = await http.get(
-        url,
-        headers: {
-          // ✅ FIX 2: Ensure token is not null before sending
-          "Authorization": "JWT ${token ?? ''}",
-          "Content-Type": "application/json",
-        },
-      );
-
-      debugPrint("$url\nRESPONSE:\n${response.body}");
-
-      if (response.statusCode == 200) {
-        root = Root.fromJson(
-          jsonDecode(response.body),
+        // 4. Execute GET Request
+        final response = await http.get(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            // Authorization is commented out in your C#, mirroring that here:
+            // 'Authorization': 'JWT ${App.jwtToken}',
+          },
         );
-        root.message = "success";
+
+        final String data = response.body;
+
+        // 5. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string into the model
+          final Map<String, dynamic> decodedData = jsonDecode(data);
+          issueListModel = IssueModel.fromJson(decodedData);
+          issueListModel.message = "success";
+        } else {
+          // API Error
+          String errorContent = extractErrorMessage(data);
+          issueListModel.message =
+              "ApiServices.getIssueList() : ${response.statusCode}\n$errorContent";
+        }
       } else {
-        root.message =
-            "${response.statusCode}\n${deserializeErrorModel(response.body)}";
+        // No Internet
+        issueListModel.message = "Please check internet connection.";
       }
-    } catch (e) {
-      root.message = "Exception in ApiServices.getPids() : $e";
-      debugPrint(root.message);
+    } catch (ex) {
+      // Exception handling
+      issueListModel.message =
+          "Exception in ApiServices.getIssueList() : ${ex.toString()}";
     }
 
-    return root;
+    return issueListModel;
+  }
+
+  Future<RelatedIssue> getRelatedIssueList(String type) async {
+    // 1. Initialize the response object
+    RelatedIssue relatedIssueListModel = RelatedIssue();
+
+    try {
+      // 2. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // 3. Prepare URL with Query Parameter
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/workshop/get-ticket-issue-choices/?ticket_issue=$type";
+
+        // 4. Execute GET Request
+        final response = await http.get(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            // Authorization is commented out in your C#, keeping it consistent:
+            // 'Authorization': 'JWT ${App.jwtToken}',
+          },
+        );
+
+        final String data = response.body;
+
+        // 5. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Success: Deserialize the JSON string into the model
+          final Map<String, dynamic> decodedData = jsonDecode(data);
+          relatedIssueListModel = RelatedIssue.fromJson(decodedData);
+          relatedIssueListModel.message = "success";
+        } else {
+          // API Error
+          String errorContent = extractErrorMessage(data);
+          relatedIssueListModel.message =
+              "ApiServices.getRelatedIssueList() : ${response.statusCode}\n$errorContent";
+        }
+      } else {
+        // No Internet
+        relatedIssueListModel.message = "Please check internet connection.";
+      }
+    } catch (ex) {
+      // Exception handling
+      relatedIssueListModel.message =
+          "Exception in ApiServices.getRelatedIssueList() : ${ex.toString()}";
+    }
+
+    return relatedIssueListModel;
+  }
+
+  Future<CreateTicketResponseModel> createTicket(
+      CreateTicketModel model) async {
+    CreateTicketResponseModel responseModel = CreateTicketResponseModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/workshop/create/ticket/";
+
+        // 2. Initialize Multipart Request
+        var request = http.MultipartRequest('POST', Uri.parse(url));
+
+        // 3. Add Headers
+        request.headers['Authorization'] = 'JWT ${App.jwtToken}';
+
+        // 4. Add Form Fields (StringContent equivalent)
+        request.fields['application_type'] = model.applicationType ?? "";
+        request.fields['region'] = model.region ?? "";
+        request.fields['workshop'] = model.workshop ?? "";
+        request.fields['location'] = model.location ?? "";
+        request.fields['ticket_issue'] = model.ticketIssue ?? "";
+        request.fields['ticket_issue_choices'] =
+            model.ticketIssueChoicesUuid ?? "";
+        request.fields['invoice_no'] = model.invoiceNo ?? "";
+        request.fields['level_status'] = model.levelStatus ?? "";
+        request.fields['serial_number'] = model.serialNumber ?? "";
+        request.fields['invoice_date'] = model.invoiceDate ?? "";
+        request.fields['comment'] = model.comment ?? "";
+
+        // 5. Add File Attachment (ByteArrayContent equivalent)
+        if (model.attachment != null && model.attachment!.isNotEmpty) {
+          // Determine MimeType (Simplified equivalent of GetMimeType)
+          String fileName = model.fileName ?? "upload.jpg";
+          String ext = p.extension(fileName).replaceAll('.', '');
+
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'attachment',
+              model.attachment!,
+              filename: fileName,
+              contentType:
+                  MediaType('application', ext.isEmpty ? 'octet-stream' : ext),
+            ),
+          );
+        }
+
+        // 6. Send Request
+        var streamedResponse = await request.send();
+        var response = await http.Response.fromStream(streamedResponse);
+        var data = response.body;
+
+        // Debug Log
+        print("Create Ticket API\nURL: $url\nRESPONSE: $data");
+
+        // 7. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          responseModel = CreateTicketResponseModel.fromJson(jsonDecode(data));
+          responseModel.message = "success";
+        } else {
+          String errorContent = extractErrorMessage(data);
+          responseModel.message =
+              "ApiServices.createTicket() : ${response.statusCode}\n$errorContent";
+        }
+      } else {
+        responseModel.message = "Please check internet connection.";
+      }
+    } catch (ex) {
+      responseModel.message =
+          "Exception in ApiServices.createTicket() : ${ex.toString()}";
+    }
+
+    return responseModel;
+  }
+
+  Future<CreateTicketResponseModel> createTicketWithoutAuthentication(
+      CreateTicketModel model) async {
+    CreateTicketResponseModel responseModel = CreateTicketResponseModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        // Note the updated URL from your C# code
+        final String url =
+            "${AppEnvironment.baseUrl}/api/v1/workshop/new/create/ticket/";
+
+        // 2. Initialize Multipart Request
+        var request = http.MultipartRequest('POST', Uri.parse(url));
+
+        // 3. Add Form Fields (StringContent equivalent)
+        // Note: mapping model.emailId to the "user" key as per your C# code
+        request.fields['user'] = model.emailId ?? "";
+        request.fields['application_type'] = model.applicationType ?? "";
+        request.fields['region'] = model.region ?? "";
+        request.fields['workshop'] = model.workshop ?? "";
+        request.fields['location'] = model.location ?? "";
+        request.fields['ticket_issue'] = model.ticketIssue ?? "";
+        request.fields['ticket_issue_choices'] =
+            model.ticketIssueChoicesUuid ?? "";
+        request.fields['invoice_no'] = model.invoiceNo ?? "";
+        request.fields['level_status'] = model.levelStatus ?? "";
+        request.fields['serial_number'] = model.serialNumber ?? "";
+        request.fields['invoice_date'] = model.invoiceDate ?? "";
+        request.fields['comment'] = model.comment ?? "";
+
+        // 4. Add File Attachment
+        if (model.attachment != null && model.attachment!.isNotEmpty) {
+          String fileName = model.fileName ?? "upload.jpg";
+
+          // Using path package correctly to get extension
+          String ext = p.extension(fileName).replaceAll('.', '');
+
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'attachment',
+              model.attachment!,
+              filename: fileName,
+              contentType:
+                  MediaType('application', ext.isEmpty ? 'octet-stream' : ext),
+            ),
+          );
+        }
+
+        // 5. Send Request
+        var streamedResponse = await request.send();
+        var response = await http.Response.fromStream(streamedResponse);
+        var data = response.body;
+
+        // Debug Logging
+        print("Create Ticket Without Auth API\nURL: $url\nRESPONSE: $data");
+
+        // 6. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          responseModel = CreateTicketResponseModel.fromJson(jsonDecode(data));
+          responseModel.message = "success";
+        } else {
+          String errorContent = extractErrorMessage(data);
+          responseModel.message =
+              "ApiServices.createTicketWithoutAuth() : ${response.statusCode}\n$errorContent";
+        }
+      } else {
+        responseModel.message = "Please check internet connection.";
+      }
+    } catch (ex) {
+      responseModel.message =
+          "Exception in ApiServices.createTicketWithoutAuth() : ${ex.toString()}";
+    }
+
+    return responseModel;
+  }
+
+  String getMimeType(String fileName) {
+    final extension = p.extension(fileName).toLowerCase();
+
+    return switch (extension) {
+      ".csv" => "text/csv",
+      ".txt" => "text/plain",
+      ".pdf" => "application/pdf",
+      ".zip" => "application/zip",
+      ".doc" => "application/msword",
+      ".docx" =>
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ".xls" => "application/vnd.ms-excel",
+      ".xlsx" =>
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ".jpg" || ".jpeg" => "image/jpeg",
+      ".png" => "image/png",
+      ".gif" => "image/gif",
+      ".mp4" => "video/mp4",
+      ".json" => "application/json",
+      _ => "application/octet-stream",
+    };
+  }
+
+  Future<SRSearchRespModel> searchSrNumber(SRSearchRequestModel model) async {
+    SRSearchRespModel srSearchRespModel = SRSearchRespModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        final String jsonBody = jsonEncode(model.toJson());
+
+        // 2. Prepare Basic Auth (Username:Password)
+        // Note: Replicating your Prod Server credentials
+        const String username = "IKONNECT";
+        const String password = "ikkoel123\$\$"; // Escaping $ in Dart strings
+
+        // Basic Auth string: base64(username:password)
+        final String credentials = "$username:$password";
+        final String authToken = base64.encode(utf8.encode(credentials));
+
+        // 3. Prepare URL
+        const String url =
+            "https://kpulsesvc.koel.co.in:2096/siebel/v1.0/service/Service Request Connect BS/QueryByExample";
+
+        // 4. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'Basic $authToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonBody,
+        );
+
+        final String responseData = response.body;
+
+        // 5. Debug Logging
+        print(
+            "Search SR Number\nURL: $url\nRequest: $jsonBody\nRESPONSE: $responseData");
+
+        // 6. Handle Response Logic
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          srSearchRespModel =
+              SRSearchRespModel.fromJson(jsonDecode(responseData));
+          srSearchRespModel.error = "success";
+        } else if (responseData.contains('"ERROR":')) {
+          // Specifically checking for your "ERROR" key in the JSON string
+          srSearchRespModel =
+              SRSearchRespModel.fromJson(jsonDecode(responseData));
+        } else {
+          srSearchRespModel.error =
+              "${response.statusCode}\n${extractErrorMessage(responseData)}";
+        }
+      } else {
+        srSearchRespModel.error = "Please check internet connection.";
+      }
+
+      return srSearchRespModel;
+    } catch (ex) {
+      srSearchRespModel.error =
+          "Exception in ApiServices.searchSrNumber() : ${ex.toString()}";
+      return srSearchRespModel;
+    }
+  }
+
+  Future<GetAPIResponseModel> getApiResponse(String endpoint,
+      {bool isAuthenticated = true}) async {
+    GetAPIResponseModel responseData = GetAPIResponseModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        final String url = "${AppEnvironment.baseUrl}$endpoint";
+
+        // 2. Prepare Headers
+        final Map<String, String> headers = {
+          'Accept': 'application/json',
+        };
+
+        if (isAuthenticated) {
+          headers['Authorization'] = 'JWT ${App.jwtToken}';
+        }
+
+        // 3. Execute GET Request
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final String data = response.body;
+
+        // 4. Debug Logging (using developer.log for better console handling)
+        //  log("URL: $url\nRESPONSE :\n$data", name: "Get API Response");
+
+        // 5. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          responseData.success = true;
+          responseData.data = data;
+        } else {
+          responseData.success = false;
+          String errorMsg = extractErrorMessage(data);
+          responseData.data = "${response.statusCode}\n$errorMsg";
+        }
+      } else {
+        // No Internet
+        responseData.success = false;
+        responseData.data = "Please check your Internet";
+      }
+    } catch (ex) {
+      // Exception handling
+      responseData.success = false;
+      responseData.data = "Exception : ${ex.toString()}";
+    }
+
+    return responseData;
+  }
+
+  Future<GetAPIResponseModel> postApi(String endpoint, String json,
+      {bool isAuthenticated = true}) async {
+    GetAPIResponseModel responseData = GetAPIResponseModel();
+
+    try {
+      // 1. Check Connectivity
+      var connectivityResult = await (Connectivity().checkConnectivity());
+
+      if (connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.wifi)) {
+        final String url = "${AppEnvironment.baseUrl}$endpoint";
+
+        // 2. Prepare Headers
+        final Map<String, String> headers = {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        };
+
+        if (isAuthenticated) {
+          headers['Authorization'] = 'JWT ${App.jwtToken}';
+        }
+
+        // 3. Execute POST Request
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: json,
+        );
+
+        final String data = response.body;
+
+        // 4. Debug Printing (Equivalent to Debug.WriteLine)
+        print("--- POST API Response ---");
+        print("URL: $url");
+        print("REQUEST: $json");
+        print("RESPONSE: $data");
+
+        // 5. Handle Response
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          responseData.success = true;
+          responseData.data = data;
+        } else {
+          responseData.success = false;
+          String errorMsg = extractErrorMessage(data);
+          responseData.data = "${response.statusCode}\n$errorMsg";
+        }
+      } else {
+        // No Internet
+        responseData.success = false;
+        responseData.data = "Please check your Internet";
+      }
+    } catch (ex) {
+      // Exception handling
+      responseData.success = false;
+      responseData.data = "Exception : ${ex.toString()}";
+    }
+
+    return responseData;
+  }
+
+  void extractFromElement(dynamic element, List<String> messages) {
+    // 1. Handle Objects (Map in Dart)
+    if (element is Map<String, dynamic>) {
+      element.forEach((key, value) {
+        extractFromElement(value, messages);
+      });
+    }
+    // 2. Handle Arrays (List in Dart)
+    else if (element is List) {
+      for (var item in element) {
+        extractFromElement(item, messages);
+      }
+    }
+    // 3. Handle Strings
+    else if (element is String) {
+      messages.add(element);
+    }
+    // 4. Handle Numbers and Booleans
+    else if (element is num || element is bool) {
+      messages.add(element.toString());
+    }
+  }
+
+  Future<OTPResponseModel> sendOtpOnMail(
+      String api, ChangePasswordModel request) async {
+    // 1. Initialize the response model
+    OTPResponseModel getOpt = OTPResponseModel();
+
+    try {
+      // 2. Serialize the request model to JSON
+      final String jsonBody = jsonEncode(request.toJson());
+
+      // 3. Prepare the URL
+      final String url = "${AppEnvironment.baseUrl}$api";
+
+      // 4. Execute the POST request
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonBody,
+      );
+
+      // 5. Handle the response
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final String responseBody = response.body;
+
+        // Deserialize the JSON into the model
+        final Map<String, dynamic> decodedData = jsonDecode(responseBody);
+        getOpt = OTPResponseModel.fromJson(decodedData);
+      }
+    } catch (ex) {
+      // Replicates your Console.WriteLine logic
+      print("Exception: ${ex.toString()}");
+    }
+
+    return getOpt;
+  }
+
+  Future<OTPResponseModel> reSendOtpOnMail(
+      String api, ChangePasswordModel request) async {
+    // 1. Initialize the response model
+    OTPResponseModel getOpt = OTPResponseModel();
+
+    try {
+      // 2. Serialize the request model to JSON string
+      final String jsonBody = jsonEncode(request.toJson());
+
+      // 3. Construct the full URL
+      final String url = "${AppEnvironment.baseUrl}$api";
+
+      // 4. Execute the POST request
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonBody,
+      );
+
+      // 5. Read and handle the response
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final String responseBody = response.body;
+
+        // Deserialize the JSON string into the Map and then the Model
+        final Map<String, dynamic> decodedData = jsonDecode(responseBody);
+        getOpt = OTPResponseModel.fromJson(decodedData);
+      }
+    } catch (ex) {
+      // Replicates your Console.WriteLine logic for debugging
+      print("Exception: ${ex.toString()}");
+    }
+
+    return getOpt;
+  }
+
+  Future<VerifyOTPResponseModel> verifyOtpService(
+      String api, VerifyOTPResponseModel request) async {
+    // 1. Initialize the response model
+    VerifyOTPResponseModel getOpt = VerifyOTPResponseModel();
+
+    try {
+      // 2. Serialize the request model to a JSON string
+      final String jsonBody = jsonEncode(request.toJson());
+
+      // 3. Construct the full URL
+      final String url = "${AppEnvironment.baseUrl}$api";
+
+      // 4. Execute the POST request
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonBody,
+      );
+
+      // 5. Read and handle the response
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final String responseBody = response.body;
+
+        // Deserialize the JSON string into a Map and then the Model
+        final Map<String, dynamic> decodedData = jsonDecode(responseBody);
+        getOpt = VerifyOTPResponseModel.fromJson(decodedData);
+      }
+    } catch (ex) {
+      // Replicates your Console.WriteLine logic for error tracking
+      print("Exception: ${ex.toString()}");
+    }
+
+    return getOpt;
+  }
+
+  Future<OTPResponseModel> changePasswordService(
+      String api, ResetPasswordModel request) async {
+    // 1. Initialize the response model
+    OTPResponseModel resetPasswordResponse = OTPResponseModel();
+
+    try {
+      // 2. Serialize the request model to a JSON string
+      final String jsonBody = jsonEncode(request.toJson());
+
+      // 3. Construct the full URL
+      final String url = "${AppEnvironment.baseUrl}$api";
+
+      // 4. Execute the POST request
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonBody,
+      );
+
+      // 5. Handle the response
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final String responseBody = response.body;
+
+        // Deserialize the JSON string into the model
+        final Map<String, dynamic> decodedData = jsonDecode(responseBody);
+        resetPasswordResponse = OTPResponseModel.fromJson(decodedData);
+      }
+    } catch (ex) {
+      // Replicates your Console.WriteLine logic
+      print("Exception: ${ex.toString()}");
+    }
+
+    return resetPasswordResponse;
   }
 }
 
@@ -1833,11 +4659,98 @@ class ErrorModel {
 
   ErrorModel({this.error});
 
-  factory ErrorModel.fromJson(Map<String, dynamic> json) => ErrorModel(
-        error: json['error'],
-      );
+  factory ErrorModel.fromJson(Map<String, dynamic> json) {
+    return ErrorModel(
+      error: json['error'],
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-        'error': error,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'error': error,
+    };
+  }
+}
+
+class NotificationModel {
+  String? body;
+  String? title;
+
+  NotificationModel({this.body, this.title});
+
+  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    return NotificationModel(
+      body: json['body'],
+      title: json['title'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'body': body,
+      'title': title,
+    };
+  }
+}
+
+class DataModel {
+  String? body;
+  String? title;
+  String? key1;
+  String? key2;
+
+  DataModel({
+    this.body,
+    this.title,
+    this.key1,
+    this.key2,
+  });
+
+  factory DataModel.fromJson(Map<String, dynamic> json) {
+    return DataModel(
+      body: json['body'],
+      title: json['title'],
+      key1: json['key_1'],
+      key2: json['key_2'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'body': body,
+      'title': title,
+      'key_1': key1,
+      'key_2': key2,
+    };
+  }
+}
+
+class NotificationRoot {
+  String? to;
+  NotificationModel? notification;
+  DataModel? data;
+
+  NotificationRoot({
+    this.to,
+    this.notification,
+    this.data,
+  });
+
+  factory NotificationRoot.fromJson(Map<String, dynamic> json) {
+    return NotificationRoot(
+      to: json['to'],
+      notification: json['notification'] != null
+          ? NotificationModel.fromJson(json['notification'])
+          : null,
+      data: json['data'] != null ? DataModel.fromJson(json['data']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'to': to,
+      'notification': notification?.toJson(),
+      'data': data?.toJson(),
+    };
+  }
 }

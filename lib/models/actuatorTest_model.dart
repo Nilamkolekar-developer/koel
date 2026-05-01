@@ -5,9 +5,11 @@ class ActuatorTestModel {
   List<ActuatorTestResult>? results;
   String? message;
 
-  ActuatorTestModel({this.count, this.next, this.previous, this.results, this.message});
+  ActuatorTestModel(
+      {this.count, this.next, this.previous, this.results, this.message});
 
-  factory ActuatorTestModel.fromJson(Map<String, dynamic> json) => ActuatorTestModel(
+  factory ActuatorTestModel.fromJson(Map<String, dynamic> json) =>
+      ActuatorTestModel(
         count: json['count'],
         next: json['next'],
         previous: json['previous'],
@@ -23,9 +25,8 @@ class ActuatorTestModel {
         'next': next,
         'previous': previous,
         'message': message,
-        'results': results != null
-            ? results!.map((x) => x.toJson()).toList()
-            : null,
+        'results':
+            results != null ? results!.map((x) => x.toJson()).toList() : null,
       };
 }
 
@@ -45,7 +46,9 @@ class ActuatorTestResult {
   String? stopTestTime;
   String? iterations;
   String? isActive;
-  List<ActuatorPid>? actuatorPid;
+  int? length;
+  double? min;
+  double? max;
 
   ActuatorTestResult({
     this.id,
@@ -63,104 +66,125 @@ class ActuatorTestResult {
     this.stopTestTime,
     this.iterations,
     this.isActive,
-    this.actuatorPid,
+    this.length,
+    this.min,
+    this.max,
   });
 
-  factory ActuatorTestResult.fromJson(Map<String, dynamic> json) => ActuatorTestResult(
-        id: json['id'],
-        actuatorName: json['actuator_name'],
-        oem: json['oem'],
-        vehicleModel: json['vehicle_model'],
-        subModel: json['sub_model'],
-        modelYear: json['model_year'],
-        ecu: json['ecu'],
-        startTest: json['start_test'],
-        stopTest: json['stop_test'],
-        returnControl: json['return_control'],
-        type: json['type'],
-        startTestTime: json['start_test_time'],
-        stopTestTime: json['stop_test_time'],
-        iterations: json['iterations'],
-        isActive: json['is_active'],
-        actuatorPid: json['actuator_pid'] != null
-            ? List<ActuatorPid>.from(
-                json['actuator_pid'].map((x) => ActuatorPid.fromJson(x)))
-            : null,
-      );
+  // JSON -> Object (Map to Object)
+  factory ActuatorTestResult.fromJson(Map<String, dynamic> json) {
+    return ActuatorTestResult(
+      id: json['id'],
+      actuatorName: json['actuator_name'],
+      oem: json['oem'],
+      vehicleModel: json['vehicle_model'],
+      subModel: json['sub_model'],
+      modelYear: json['model_year'],
+      ecu: json['ecu'],
+      startTest: json['start_test'],
+      stopTest: json['stop_test'],
+      returnControl: json['return_control'],
+      type: json['type'],
+      startTestTime: json['start_test_time'],
+      stopTestTime: json['stop_test_time'],
+      iterations: json['iterations'],
+      isActive: json['is_active'],
+      length: json['length'],
+      // Safety check for double conversion
+      min: json['min']?.toDouble(),
+      max: json['max']?.toDouble(),
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'actuator_name': actuatorName,
-        'oem': oem,
-        'vehicle_model': vehicleModel,
-        'sub_model': subModel,
-        'model_year': modelYear,
-        'ecu': ecu,
-        'start_test': startTest,
-        'stop_test': stopTest,
-        'return_control': returnControl,
-        'type': type,
-        'start_test_time': startTestTime,
-        'stop_test_time': stopTestTime,
-        'iterations': iterations,
-        'is_active': isActive,
-        'actuator_pid':
-            actuatorPid != null ? actuatorPid!.map((x) => x.toJson()).toList() : null,
-      };
+  // Object -> JSON (Object to Map)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'actuator_name': actuatorName,
+      'oem': oem,
+      'vehicle_model': vehicleModel,
+      'sub_model': subModel,
+      'model_year': modelYear,
+      'ecu': ecu,
+      'start_test': startTest,
+      'stop_test': stopTest,
+      'return_control': returnControl,
+      'type': type,
+      'start_test_time': startTestTime,
+      'stop_test_time': stopTestTime,
+      'iterations': iterations,
+      'is_active': isActive,
+      'length': length,
+      'min': min,
+      'max': max,
+    };
+  }
 }
 
-class ActuatorPid {
-  int? id;
-  String? type;
-  String? cat;
-  int? pid;
-  String? description;
-  String? lowerLimit;
-  String? upperLimit;
-  String? isActive;
-  String? currentValue;
-  bool? isCheck;
-  String? unit;
+class ActuatorTestAnalyzeRootModel {
+  List<ActuatorTestAnalyzeModel>? actuator;
 
-  ActuatorPid({
-    this.id,
-    this.type,
-    this.cat,
-    this.pid,
-    this.description,
-    this.lowerLimit,
-    this.upperLimit,
-    this.isActive,
-    this.currentValue,
-    this.isCheck,
-    this.unit,
+  ActuatorTestAnalyzeRootModel({this.actuator});
+
+  // JSON -> Object
+  factory ActuatorTestAnalyzeRootModel.fromJson(Map<String, dynamic> json) {
+    return ActuatorTestAnalyzeRootModel(
+      actuator: json['actuator'] != null
+          ? (json['actuator'] as List)
+              .map((i) => ActuatorTestAnalyzeModel.fromJson(i))
+              .toList()
+          : null,
+    );
+  }
+
+  // Object -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'actuator': actuator?.map((v) => v.toJson()).toList(),
+    };
+  }
+}
+
+class ActuatorTestAnalyzeModel {
+  String? name;
+  String? status;
+  String? startDate;
+  String? endDate;
+  String? startRequest;
+  String? stopRequest;
+  String? lastResponse;
+
+  ActuatorTestAnalyzeModel({
+    this.name,
+    this.status,
+    this.startDate,
+    this.endDate,
+    this.startRequest,
+    this.stopRequest,
+    this.lastResponse,
   });
 
-  factory ActuatorPid.fromJson(Map<String, dynamic> json) => ActuatorPid(
-        id: json['id'],
-        type: json['type'],
-        cat: json['cat'],
-        pid: json['pid'],
-        description: json['description'],
-        lowerLimit: json['lower_limit'],
-        upperLimit: json['upper_limit'],
-        isActive: json['is_active'],
-        currentValue: json['current_value'],
-        isCheck: json['is_check'],
-        unit: json['unit'],
-      );
+  factory ActuatorTestAnalyzeModel.fromJson(Map<String, dynamic> json) {
+    return ActuatorTestAnalyzeModel(
+      name: json['name'],
+      status: json['status'],
+      startDate: json['start_date'],
+      endDate: json['end_date'],
+      startRequest: json['start_request'],
+      stopRequest: json['stop_request'],
+      lastResponse: json['last_response'],
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type,
-        'cat': cat,
-        'pid': pid,
-        'description': description,
-        'lower_limit': lowerLimit,
-        'upper_limit': upperLimit,
-        'is_active': isActive,
-        'current_value': currentValue,
-        'is_check': isCheck,
-        'unit': unit,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'status': status,
+      'start_date': startDate,
+      'end_date': endDate,
+      'start_request': startRequest,
+      'stop_request': stopRequest,
+      'last_response': lastResponse,
+    };
+  }
 }

@@ -1196,3 +1196,24 @@ class ResCloseSession {
         'status': status,
       };
 }
+class CloseSession {
+  String? status;
+
+  CloseSession({
+    this.status,
+  });
+
+  // Convert JSON Map to CloseSession object
+  factory CloseSession.fromJson(Map<String, dynamic> json) {
+    return CloseSession(
+      status: json['status'],
+    );
+  }
+
+  // Convert CloseSession object to JSON Map
+  Map<String, dynamic> toJson() {
+    return {
+      'status': status,
+    };
+  }
+}
