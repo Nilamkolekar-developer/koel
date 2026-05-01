@@ -668,6 +668,8 @@ class Ecu {
     );
   }
 
+  get read_dtc_fn_index => null;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
