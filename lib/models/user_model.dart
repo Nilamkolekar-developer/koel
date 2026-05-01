@@ -1,77 +1,36 @@
-// ================= REQUEST MODELS =================
-
-import 'package:autopeepal/models/jobCard_model.dart';
-
 class UserModel {
-  String username;
-  String password;
-  String macId;
-  String deviceType;
+  String? username;
+  String? password;
+  String? macId;
+  String? deviceType;
 
   UserModel({
-    required this.username,
-    required this.password,
-    required this.macId,
-    required this.deviceType,
+    this.username,
+    this.password,
+    this.macId,
+    this.deviceType,
   });
 
-  // ✅ For API / file save
   Map<String, dynamic> toJson() {
     return {
-      "username": username,
-      "password": password,
+      "username": username?.trim(),
+      "password": password?.trim(),
       "mac_id": macId,
       "device_type": deviceType,
     };
   }
-
-  // ✅ REQUIRED for offline login / restore
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      username: json['username'],
-      password: json['password'],
-      macId: json['mac_id'],
-      deviceType: json['device_type'],
-    );
-  }
 }
-
-class ChangePassword {
-  String newPassword1;
-  String newPassword2;
-
-  ChangePassword({
-    required this.newPassword1,
-    required this.newPassword2,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      "new_password1": newPassword1,
-      "new_password2": newPassword2,
-    };
-  }
-
-  factory ChangePassword.fromJson(Map<String, dynamic> json) {
-    return ChangePassword(
-      newPassword1: json['new_password1'],
-      newPassword2: json['new_password2'],
-    );
-  }
-}
-
 class LoginRespons {
   LoginRes? loginRes;
   UserResModel? userRes;
 
-  LoginRespons({
-    this.loginRes,
-    this.userRes,
-  });
+  LoginRespons({this.loginRes, this.userRes});
 
   factory LoginRespons.fromJson(Map<String, dynamic> json) {
     return LoginRespons(
-      loginRes: json['login'] != null ? LoginRes.fromJson(json['login']) : null,
+      loginRes: json['login'] != null
+          ? LoginRes.fromJson(json['login'])
+          : null,
       userRes: json['userRes'] != null
           ? UserResModel.fromJson(json['userRes'])
           : null,
@@ -85,7 +44,6 @@ class LoginRespons {
     };
   }
 }
-
 class LoginRes {
   String? error;
   bool? isActive;
@@ -106,62 +64,9 @@ class LoginRes {
     };
   }
 }
-
-class Licences {
-  bool allDTC;
-  bool selfTest;
-  bool ecuFlashing;
-  bool write;
-  bool liveParameter;
-  bool dtc;
-  bool ecuInformation;
-  bool regeneration;
-  bool sessionLog;
-
-  Licences({
-    required this.allDTC,
-    required this.selfTest,
-    required this.ecuFlashing,
-    required this.write,
-    required this.liveParameter,
-    required this.dtc,
-    required this.ecuInformation,
-    required this.regeneration,
-    required this.sessionLog,
-  });
-
-  factory Licences.fromJson(Map<String, dynamic> json) {
-    return Licences(
-      allDTC: json['All DTC'] ?? false,
-      selfTest: json['Self Test'] ?? false,
-      ecuFlashing: json['ECU Flashing'] ?? false,
-      write: json['Write'] ?? false,
-      liveParameter: json['Live Parameter'] ?? false,
-      dtc: json['DTC'] ?? false,
-      ecuInformation: json['ECU Information'] ?? false,
-      regeneration: json['Regeneration'] ?? false,
-      sessionLog: json['Session Log'] ?? false,
-    );
-  }
-
-  /// ✅ ADD THIS
-  Map<String, dynamic> toJson() {
-    return {
-      'All DTC': allDTC,
-      'Self Test': selfTest,
-      'ECU Flashing': ecuFlashing,
-      'Write': write,
-      'Live Parameter': liveParameter,
-      'DTC': dtc,
-      'ECU Information': ecuInformation,
-      'Regeneration': regeneration,
-      'Session Log': sessionLog,
-    };
-  }
-}
-
 class UserResModel {
   int? userId;
+  String? macId;
   Licences? licences;
   String? lastName;
   String? role;
@@ -172,8 +77,14 @@ class UserResModel {
   Profile? profile;
   String? message;
 
+  // ✅ ADD THESE (MISSING BEFORE)
+  String? detail;
+  String? error;
+  bool? isActive;
+
   UserResModel({
     this.userId,
+    this.macId,
     this.licences,
     this.lastName,
     this.role,
@@ -183,42 +94,128 @@ class UserResModel {
     this.firstName,
     this.profile,
     this.message,
+    this.detail,
+    this.error,
+    this.isActive,
   });
 
   factory UserResModel.fromJson(Map<String, dynamic> json) {
     return UserResModel(
       userId: json['user_id'],
-      licences:
-          json['licences'] != null ? Licences.fromJson(json['licences']) : null,
+      macId: json['mac_id'],
+      licences: json['licences'] != null
+          ? Licences.fromJson(json['licences'])
+          : null,
       lastName: json['last_name'],
       role: json['role'],
-      expires: json['expires'] != null ? DateTime.parse(json['expires']) : null,
-      token: json['token'] != null ? Token.fromJson(json['token']) : null,
+      expires: json['expires'] != null
+          ? DateTime.parse(json['expires'])
+          : null,
+      token: json['token'] != null
+          ? Token.fromJson(json['token'])
+          : null,
       user: json['user'],
       firstName: json['first_name'],
-      profile:
-          json['profile'] != null ? Profile.fromJson(json['profile']) : null,
+      profile: json['profile'] != null
+          ? Profile.fromJson(json['profile'])
+          : null,
       message: json['message'],
+
+      // ✅ IMPORTANT
+      detail: json['detail'],
+      error: json['error'],
+      isActive: json['is_active'],
     );
   }
 
-  /// ✅ ADD THIS
   Map<String, dynamic> toJson() {
     return {
-      'user_id': userId,
-      'licences': licences?.toJson(),
-      'last_name': lastName,
-      'role': role,
-      'expires': expires?.toIso8601String(),
-      'token': token?.toJson(),
-      'user': user,
-      'first_name': firstName,
-      'profile': profile?.toJson(),
-      'message': message,
+      "user_id": userId,
+      "mac_id": macId,
+      "licences": licences?.toJson(),
+      "last_name": lastName,
+      "role": role,
+      "expires": expires?.toIso8601String(),
+      "token": token?.toJson(),
+      "user": user,
+      "first_name": firstName,
+      "profile": profile?.toJson(),
+      "message": message,
+
+      // ✅ IMPORTANT
+      "detail": detail,
+      "error": error,
+      "is_active": isActive,
     };
   }
 }
+class Licences {
+  bool? readClearDTC;
+  bool? readPID;
+  bool? writePID;
+  bool? actTest;
+  bool? routineTest;
+  bool? partReplacement;
+  bool? dtcGuidedDiagnostics;
+  bool? flash;
 
+  Licences({
+    this.readClearDTC,
+    this.readPID,
+    this.writePID,
+    this.actTest,
+    this.routineTest,
+    this.partReplacement,
+    this.dtcGuidedDiagnostics,
+    this.flash,
+  });
+
+  factory Licences.fromJson(Map<String, dynamic> json) {
+    return Licences(
+      readClearDTC: json['ReadClearDTC'],
+      readPID: json['ReadPID'],
+      writePID: json['WritePID'],
+      actTest: json['ActTest'],
+      routineTest: json['RoutineTest'],
+      partReplacement: json['PartReplacement'],
+      dtcGuidedDiagnostics: json['DTCGuidedDiagnostics'],
+      flash: json['Flash'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "ReadClearDTC": readClearDTC,
+      "ReadPID": readPID,
+      "WritePID": writePID,
+      "ActTest": actTest,
+      "RoutineTest": routineTest,
+      "PartReplacement": partReplacement,
+      "DTCGuidedDiagnostics": dtcGuidedDiagnostics,
+      "Flash": flash,
+    };
+  }
+}
+class Token {
+  String? refresh;
+  String? access;
+
+  Token({this.refresh, this.access});
+
+  factory Token.fromJson(Map<String, dynamic> json) {
+    return Token(
+      refresh: json['refresh'],
+      access: json['access'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "refresh": refresh,
+      "access": access,
+    };
+  }
+}
 class Profile {
   int? id;
   Oem1? oem;
@@ -226,14 +223,11 @@ class Profile {
   String? mobile;
   String? role;
   bool? status;
-  dynamic parent;
   int? user;
   int? workshop;
-  dynamic reportTo;
-  List<dynamic>? runTimeLicenses;
-
-  /// ✅ IMPORTANT: make this strongly typed
-  List<VehicleModel>? workshopGroupModels;
+  int? workshopGroup;
+  String? workshopName;
+  String? workshopRegion;
 
   Profile({
     this.id,
@@ -242,12 +236,11 @@ class Profile {
     this.mobile,
     this.role,
     this.status,
-    this.parent,
     this.user,
     this.workshop,
-    this.reportTo,
-    this.runTimeLicenses,
-    this.workshopGroupModels,
+    this.workshopGroup,
+    this.workshopName,
+    this.workshopRegion,
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) {
@@ -258,40 +251,30 @@ class Profile {
       mobile: json['mobile'],
       role: json['role'],
       status: json['status'],
-      parent: json['parent'],
       user: json['user'],
       workshop: json['workshop'],
-      reportTo: json['report_to'],
-      runTimeLicenses: json['run_time_licenses'] ?? [],
-      workshopGroupModels: json['workshop_group_models'] != null
-          ? List<VehicleModel>.from(
-              json['workshop_group_models']
-                  .map((e) => VehicleModel.fromJson(e)),
-            )
-          : [],
+      workshopGroup: json['workshop_group'],
+      workshopName: json['workshop_name'],
+      workshopRegion: json['workshop_region'],
     );
   }
 
-  /// ✅ ADD THIS
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'oem': oem?.toJson(),
-      'email': email,
-      'mobile': mobile,
-      'role': role,
-      'status': status,
-      'parent': parent,
-      'user': user,
-      'workshop': workshop,
-      'report_to': reportTo,
-      'run_time_licenses': runTimeLicenses,
-      'workshop_group_models':
-          workshopGroupModels?.map((e) => e.toJson()).toList(),
+      "id": id,
+      "oem": oem?.toJson(),
+      "email": email,
+      "mobile": mobile,
+      "role": role,
+      "status": status,
+      "user": user,
+      "workshop": workshop,
+      "workshop_group": workshopGroup,
+      "workshop_name": workshopName,
+      "workshop_region": workshopRegion,
     };
   }
 }
-
 class Oem1 {
   int? id;
   DateTime? created;
@@ -324,9 +307,12 @@ class Oem1 {
   factory Oem1.fromJson(Map<String, dynamic> json) {
     return Oem1(
       id: json['id'],
-      created: json['created'] != null ? DateTime.parse(json['created']) : null,
-      modified:
-          json['modified'] != null ? DateTime.parse(json['modified']) : null,
+      created: json['created'] != null
+          ? DateTime.parse(json['created'])
+          : null,
+      modified: json['modified'] != null
+          ? DateTime.parse(json['modified'])
+          : null,
       name: json['name'],
       slug: json['slug'],
       createdBy: json['created_by'],
@@ -339,35 +325,29 @@ class Oem1 {
     );
   }
 
-  /// ✅ ADD THIS
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'created': created?.toIso8601String(),
-      'modified': modified?.toIso8601String(),
-      'name': name,
-      'slug': slug,
-      'created_by': createdBy,
-      'is_active': isActive,
-      'oem_file': oemFile,
-      'color': color,
-      'app_name': appName,
-      'admin': admin,
-      'manager': manager,
+      "id": id,
+      "created": created?.toIso8601String(),
+      "modified": modified?.toIso8601String(),
+      "name": name,
+      "slug": slug,
+      "created_by": createdBy,
+      "is_active": isActive,
+      "oem_file": oemFile,
+      "color": color,
+      "app_name": appName,
+      "admin": admin,
+      "manager": manager,
     };
   }
 }
-
 class InvantabUserModel {
   String? username;
   String? password;
 
-  InvantabUserModel({
-    this.username,
-    this.password,
-  });
+  InvantabUserModel({this.username, this.password});
 
-  // FROM JSON
   factory InvantabUserModel.fromJson(Map<String, dynamic> json) {
     return InvantabUserModel(
       username: json['username'],
@@ -375,37 +355,13 @@ class InvantabUserModel {
     );
   }
 
-  // TO JSON
   Map<String, dynamic> toJson() {
     return {
-      'username': username,
-      'password': password,
+      "username": username,
+      "password": password,
     };
   }
 }
-
-class Token {
-  String? refresh;
-  String? access;
-
-  Token({this.refresh, this.access});
-
-  factory Token.fromJson(Map<String, dynamic> json) {
-    return Token(
-      refresh: json['refresh'],
-      access: json['access'],
-    );
-  }
-
-  /// ✅ ADD THIS
-  Map<String, dynamic> toJson() {
-    return {
-      'refresh': refresh,
-      'access': access,
-    };
-  }
-}
-
 class InvantabUserResModel {
   bool? success;
   InvantabData? data;
@@ -419,27 +375,109 @@ class InvantabUserResModel {
     this.status,
   });
 
-  // JSON -> Object
   factory InvantabUserResModel.fromJson(Map<String, dynamic> json) {
     return InvantabUserResModel(
       success: json['success'],
-      data: json['data'] != null ? InvantabData.fromJson(json['data']) : null,
+      data: json['data'] != null
+          ? InvantabData.fromJson(json['data'])
+          : null,
       message: json['message'],
       status: json['status'],
     );
   }
 
-  // Object -> JSON
   Map<String, dynamic> toJson() {
     return {
-      'success': success,
-      'data': data?.toJson(),
-      'message': message,
-      'status': status,
+      "success": success,
+      "data": data?.toJson(),
+      "message": message,
+      "status": status,
     };
   }
 }
+class AuthToken {
+  String? access;
+  String? refresh;
 
+  AuthToken({this.access, this.refresh});
+
+  factory AuthToken.fromJson(Map<String, dynamic> json) {
+    return AuthToken(
+      access: json['access'],
+      refresh: json['refresh'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "access": access,
+      "refresh": refresh,
+    };
+  }
+}
+class Country {
+  String? id;
+  DateTime? created;
+  DateTime? modified;
+  String? name;
+  dynamic slug;
+  String? region;
+  String? code;
+  String? currencyName;
+  dynamic postalCodeFormat;
+  dynamic postalCodeRegex;
+  String? currency;
+
+  Country({
+    this.id,
+    this.created,
+    this.modified,
+    this.name,
+    this.slug,
+    this.region,
+    this.code,
+    this.currencyName,
+    this.postalCodeFormat,
+    this.postalCodeRegex,
+    this.currency,
+  });
+
+  factory Country.fromJson(Map<String, dynamic> json) {
+    return Country(
+      id: json['id'],
+      created: json['created'] != null
+          ? DateTime.parse(json['created'])
+          : null,
+      modified: json['modified'] != null
+          ? DateTime.parse(json['modified'])
+          : null,
+      name: json['name'],
+      slug: json['slug'],
+      region: json['region'],
+      code: json['code'],
+      currencyName: json['currency_name'],
+      postalCodeFormat: json['postal_code_format'],
+      postalCodeRegex: json['postal_code_regex'],
+      currency: json['currency'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "id": id,
+      "created": created?.toIso8601String(),
+      "modified": modified?.toIso8601String(),
+      "name": name,
+      "slug": slug,
+      "region": region,
+      "code": code,
+      "currency_name": currencyName,
+      "postal_code_format": postalCodeFormat,
+      "postal_code_regex": postalCodeRegex,
+      "currency": currency,
+    };
+  }
+}
 class InvantabData {
   String? firstName;
   String? lastName;
@@ -478,12 +516,12 @@ class InvantabData {
       email: json['email'],
       marketplace: json['marketplace'] != null
           ? (json['marketplace'] as List)
-              .map((i) => Marketplace.fromJson(i))
+              .map((e) => Marketplace.fromJson(e))
               .toList()
-          : null,
+          : [],
       org: json['org'] != null ? Org.fromJson(json['org']) : null,
-      dept: json['dept'], // List<dynamic>
-      subscription: json['subscription'], // List<dynamic>
+      dept: json['dept'],
+      subscription: json['subscription'],
       online: json['online'],
       active: json['active'],
       authToken: json['auth_token'] != null
@@ -494,22 +532,21 @@ class InvantabData {
 
   Map<String, dynamic> toJson() {
     return {
-      'first_name': firstName,
-      'last_name': lastName,
-      'user_id': userId,
-      'mobile': mobile,
-      'email': email,
-      'marketplace': marketplace?.map((i) => i.toJson()).toList(),
-      'org': org?.toJson(),
-      'dept': dept,
-      'subscription': subscription,
-      'online': online,
-      'active': active,
-      'auth_token': authToken?.toJson(),
+      "first_name": firstName,
+      "last_name": lastName,
+      "user_id": userId,
+      "mobile": mobile,
+      "email": email,
+      "marketplace": marketplace?.map((e) => e.toJson()).toList(),
+      "org": org?.toJson(),
+      "dept": dept,
+      "subscription": subscription,
+      "online": online,
+      "active": active,
+      "auth_token": authToken?.toJson(),
     };
   }
 }
-
 class Marketplace {
   String? id;
   String? marketplaceName;
@@ -525,7 +562,6 @@ class Marketplace {
     this.org,
   });
 
-  // FROM JSON
   factory Marketplace.fromJson(Map<String, dynamic> json) {
     return Marketplace(
       id: json['id'],
@@ -536,18 +572,16 @@ class Marketplace {
     );
   }
 
-  // TO JSON
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'marketplace_name': marketplaceName,
-      'color': color,
-      'logo': logo,
-      'org': org,
+      "id": id,
+      "marketplace_name": marketplaceName,
+      "color": color,
+      "logo": logo,
+      "org": org,
     };
   }
 }
-
 class Org {
   String? id;
   List<dynamic>? banks;
@@ -589,16 +623,18 @@ class Org {
     this.role,
   });
 
-  // FROM JSON
   factory Org.fromJson(Map<String, dynamic> json) {
     return Org(
       id: json['id'],
       banks: json['banks'],
       country:
           json['country'] != null ? Country.fromJson(json['country']) : null,
-      created: json['created'] != null ? DateTime.parse(json['created']) : null,
-      modified:
-          json['modified'] != null ? DateTime.parse(json['modified']) : null,
+      created: json['created'] != null
+          ? DateTime.parse(json['created'])
+          : null,
+      modified: json['modified'] != null
+          ? DateTime.parse(json['modified'])
+          : null,
       orgCode: json['org_code'],
       companyType: json['company_type'],
       companyName: json['company_name'],
@@ -611,120 +647,55 @@ class Org {
       paymentTerm: json['payment_term'],
       marketplace: json['marketplace'],
       metaTags: json['meta_tags'],
-      role: json['role'] != null ? List<String>.from(json['role']) : null,
+      role: json['role'] != null
+          ? List<String>.from(json['role'])
+          : [],
     );
   }
 
-  // TO JSON
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'banks': banks,
-      'country': country?.toJson(),
-      'created': created?.toIso8601String(),
-      'modified': modified?.toIso8601String(),
-      'org_code': orgCode,
-      'company_type': companyType,
-      'company_name': companyName,
-      'logo': logo,
-      'address': address,
-      'pan_no': panNo,
-      'pan_cert': panCert,
-      'pincode': pincode,
-      'contact_person': contactPerson,
-      'payment_term': paymentTerm,
-      'marketplace': marketplace,
-      'meta_tags': metaTags,
-      'role': role,
+      "id": id,
+      "banks": banks,
+      "country": country?.toJson(),
+      "created": created?.toIso8601String(),
+      "modified": modified?.toIso8601String(),
+      "org_code": orgCode,
+      "company_type": companyType,
+      "company_name": companyName,
+      "logo": logo,
+      "address": address,
+      "pan_no": panNo,
+      "pan_cert": panCert,
+      "pincode": pincode,
+      "contact_person": contactPerson,
+      "payment_term": paymentTerm,
+      "marketplace": marketplace,
+      "meta_tags": metaTags,
+      "role": role,
     };
   }
 }
+class ChangePassword {
+  String? newPassword1;
+  String? newPassword2;
 
-class AuthToken {
-  String? access;
-  String? refresh;
-
-  AuthToken({
-    this.access,
-    this.refresh,
+  ChangePassword({
+    this.newPassword1,
+    this.newPassword2,
   });
 
-  // FROM JSON
-  factory AuthToken.fromJson(Map<String, dynamic> json) {
-    return AuthToken(
-      access: json['access'],
-      refresh: json['refresh'],
+  factory ChangePassword.fromJson(Map<String, dynamic> json) {
+    return ChangePassword(
+      newPassword1: json['new_password1'],
+      newPassword2: json['new_password2'],
     );
   }
 
-  // TO JSON
   Map<String, dynamic> toJson() {
     return {
-      'access': access,
-      'refresh': refresh,
-    };
-  }
-}
-
-class Country {
-  String? id;
-  DateTime? created;
-  DateTime? modified;
-  String? name;
-  dynamic slug;
-  String? region;
-  String? code;
-  String? currencyName;
-  dynamic postalCodeFormat;
-  dynamic postalCodeRegex;
-  String? currency;
-
-  Country({
-    this.id,
-    this.created,
-    this.modified,
-    this.name,
-    this.slug,
-    this.region,
-    this.code,
-    this.currencyName,
-    this.postalCodeFormat,
-    this.postalCodeRegex,
-    this.currency,
-  });
-
-  // FROM JSON
-  factory Country.fromJson(Map<String, dynamic> json) {
-    return Country(
-      id: json['id'],
-      created: json['created'] != null ? DateTime.parse(json['created']) : null,
-      modified:
-          json['modified'] != null ? DateTime.parse(json['modified']) : null,
-      name: json['name'],
-      slug: json['slug'],
-      region: json['region'],
-      code: json['code'],
-      currencyName: json['currency_name'],
-      postalCodeFormat: json['postal_code_format'],
-      postalCodeRegex: json['postal_code_regex'],
-      currency: json['currency'],
-    );
-  }
-
-  // TO JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'created': created?.toIso8601String(),
-      'modified': modified?.toIso8601String(),
-      'name': name,
-      'slug': slug,
-      'region': region,
-      'code': code,
-      'currency_name': currencyName,
-      'postal_code_format': postalCodeFormat,
-      'postal_code_regex': postalCodeRegex,
-      'currency': currency,
+      "new_password1": newPassword1,
+      "new_password2": newPassword2,
     };
   }
 }

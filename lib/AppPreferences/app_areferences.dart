@@ -288,8 +288,8 @@ class AppPreferences {
   static const String _masterLoginUserByKey = 'MasterLoginUserBY';
   static const String _masterLoginRoleByKey = 'MasterLoginUserRoleBY';
   static const String _userIdKey = 'userId';
-    static const String _nameKey = 'name';
-   static const String _emailKey = 'email';
+  static const String _nameKey = 'name';
+  static const String _emailKey = 'email';
 
   // ================= GENERIC STRING METHODS =================
 
@@ -316,6 +316,7 @@ class AppPreferences {
     final prefs = await SharedPreferences.getInstance();
     return prefs.containsKey(key);
   }
+
 // ================= INT =================
   static Future<void> setInt(String key, int value) async {
     final prefs = await SharedPreferences.getInstance();
@@ -328,7 +329,7 @@ class AppPreferences {
   }
   // ================= TOKEN (General) =================
 
- static Future<void> saveUser({
+  static Future<void> saveUser({
     required String userId,
     required String name,
     required String email,
@@ -381,6 +382,21 @@ class AppPreferences {
   static Future<String?> getMasterLoginUserRoleBY() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_masterLoginRoleByKey);
+  }
+
+  Future<String?> getPreference(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(key);
+  }
+
+  Future<String?> getPref(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(key);
+  }
+
+  Future<void> setPref(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
   }
 
   // ================= SPECIFIC REMOVE METHODS =================
