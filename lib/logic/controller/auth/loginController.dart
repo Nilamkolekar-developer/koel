@@ -21,7 +21,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
-
 class LoginController extends GetxController {
   final GetDeviceUniqueId getDeviceUniqueId = GetDeviceUniqueId();
   final AuthApiService services = AuthApiService();
@@ -30,13 +29,14 @@ class LoginController extends GetxController {
     super.onInit();
     initData();
   }
-var hidePassword = true.obs;
+
+  var hidePassword = true.obs;
   var isRememberMeChecked = false.obs;
 
   var usernameController = TextEditingController().obs;
   var passwordController = TextEditingController().obs;
   UserModel userRequestModel = UserModel();
-UserResModel userResModel = UserResModel();
+  UserResModel userResModel = UserResModel();
   var rememberCheck = false.obs;
   var isPassword = true.obs;
   var isHelpPopupVisible = false.obs;
@@ -48,245 +48,244 @@ UserResModel userResModel = UserResModel();
   // ---------------- INIT ----------------
 
   Future<void> initData() async {
-    // remember logic
-    String isRemember = await AppPreferences.getString("is_remember") ?? "";
+  String isRemember = await AppPreferences.getString("is_remember") ?? "";
 
-    if (isRemember == "true") {
-      userRequestModel.username =
-          await AppPreferences.getString("user_email") ?? "";
-      userRequestModel.password =
-          await AppPreferences.getString("user_password") ?? "";
-      rememberCheck.value = true;
-    } else {
-      userRequestModel.username = "";
-      userRequestModel.password = "";
-      rememberCheck.value = false;
-    }
+  if (isRemember == "true") {
+    String username =
+        await AppPreferences.getString("user_email") ?? "";
+    String password =
+        await AppPreferences.getString("user_password") ?? "";
 
-    // device id (replace with your method)
-    var device = await AndroidOperationsService.getDeviceUniqueId();
-    userRequestModel.macId = device.toString();
-    userRequestModel.deviceType = "android";
+    userRequestModel.username = username;
+    userRequestModel.password = password;
+
+    usernameController.value.text = username;   // ✅ ADD THIS
+    passwordController.value.text = password;   // ✅ ADD THIS
+
+    rememberCheck.value = true;
+  } else {
+    usernameController.value.clear();
+    passwordController.value.clear();
+    rememberCheck.value = false;
   }
+
+  var device = await AndroidOperationsService.getDeviceUniqueId();
+  userRequestModel.macId = device.toString();
+  userRequestModel.deviceType = "android";
+}
 
   // ---------------- LOGIN ----------------
 
- Future<void> loginMethod() async {
-  final username = usernameController.value.text.trim();
-  final password = passwordController.value.text.trim();
+  Future<void> loginMethod() async {
+    final username = usernameController.value.text.trim();
+    final password = passwordController.value.text.trim();
 
-  // IMPORTANT: assign to model
-  userRequestModel.username = username;
-  userRequestModel.password = password;
+    // IMPORTANT: assign to model
+    userRequestModel.username = username;
+    userRequestModel.password = password;
 
-  if (username.isEmpty && password.isEmpty) {
-    await alertMessage("Enter user name and password.");
-    return;
-  }
-
-  if (username.isEmpty) {
-    await alertMessage("Enter user name.");
-    return;
-  }
-
-  if (password.isEmpty) {
-    await alertMessage("Enter user password.");
-    return;
-  }
-
-  try {
-    final connectivityResult = await Connectivity().checkConnectivity();
-
-    final isLogin = connectivityResult != ConnectivityResult.none
-        ? await loginOnline()
-        : await loginOffline();
-
-    if (isLogin) {
-      if (rememberCheck.value) {
-        await AndroidOperationsService.saveData(
-            "user_email", userResModel.user ?? '');
-        await AndroidOperationsService.saveData(
-            "user_password", password);
-        await AndroidOperationsService.saveData(
-            "is_remember", "true");
-      } else {
-        await AndroidOperationsService.saveData("user_email", "");
-        await AndroidOperationsService.saveData("user_password", "");
-        await AndroidOperationsService.saveData("is_remember", "false");
-      }
-
-      App.userResModel = userResModel;
-
-      Get.offAllNamed(Routes.esnScreen);
+    if (username.isEmpty && password.isEmpty) {
+      await alertMessage("Enter user name and password.");
+      return;
     }
-  } catch (e, st) {
-    await alertMessage("$e\n$st", "Exception in LoginMethod()");
+
+    if (username.isEmpty) {
+      await alertMessage("Enter user name.");
+      return;
+    }
+
+    if (password.isEmpty) {
+      await alertMessage("Enter user password.");
+      return;
+    }
+
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+
+      final isLogin = connectivityResult != ConnectivityResult.none
+          ? await loginOnline()
+          : await loginOffline();
+
+      if (isLogin) {
+        if (rememberCheck.value) {
+          await AndroidOperationsService.saveData(
+              "user_email", userResModel.user ?? '');
+          await AndroidOperationsService.saveData("user_password", password);
+          await AndroidOperationsService.saveData("is_remember", "true");
+        } else {
+          await AndroidOperationsService.saveData("user_email", "");
+          await AndroidOperationsService.saveData("user_password", "");
+          await AndroidOperationsService.saveData("is_remember", "false");
+        }
+
+        App.userResModel = userResModel;
+
+        Get.offAllNamed(Routes.esnScreen);
+      }
+    } catch (e, st) {
+      await alertMessage("$e\n$st", "Exception in LoginMethod()");
+    }
   }
-}
+
   // ---------------- API METHODS ----------------
- Future<bool> loginOnline() async {
-  try {
-    print("👉 loginOnline() STARTED");
+  Future<bool> loginOnline() async {
+    try {
+      print("👉 loginOnline() STARTED");
 
-    showLoading("Logging In...");
-    await Future.delayed(const Duration(milliseconds: 50));
-
-    print("👉 Calling API login");
-
-   userResModel =
-    await AuthApiService.login(userRequestModel);
-
-    print("👉 API RESPONSE RECEIVED");
-    print("Message: ${userResModel.message}");
-    print("User: ${userResModel.user}");
-    print("Error: ${userResModel.error}");
-    print("Detail: ${userResModel.detail}");
-
-    // ❌ FAILURE CASE
-    if (userResModel.message != "success") {
-      print("❌ LOGIN FAILED");
-      await alertMessage(userResModel.message ?? "Login failed");
-      return false;
-    }
-
-    // ❌ INACTIVE USER CASE
-    if (userResModel.isActive == false) {
-      print("❌ USER NOT ACTIVE");
-      await alertMessage(
-        "${userResModel.error ?? ''}\n${userResModel.detail ?? ''}",
-      );
-      return false;
-    }
-
-    // ✅ SUCCESS CASE
-    print("✅ LOGIN SUCCESS BLOCK");
-
-    App.oemId = userResModel.profile?.oem?.id ?? 0;
-    App.userId = userResModel.userId ?? 0;
-    App.userEmail = userResModel.user ?? '';
-    App.jwtToken = userResModel.token?.access ?? '';
-    App.userRole = userResModel.role ?? '';
-
-    print("👉 User assigned to App");
-
-    if (userResModel.licences != null) {
-      print("👉 Init runtime licence");
-      initRuntimeLicence(userResModel.licences!);
-    }
-
-    // 🔹 Load previous user
-    String? previousUserDetail =
-        await AndroidOperationsService.getData("UserDetailL_LocalData");
-
-    if (previousUserDetail != null && previousUserDetail.isNotEmpty) {
-      var prev = UserResModel.fromJson(jsonDecode(previousUserDetail));
-
-      if (userResModel.userId != prev.userId) {
-        print("👉 Different user detected, clearing parameter list");
-        await AndroidOperationsService.saveData("Parameter_LocalList", "");
-      }
-    }
-
-    // 🔹 Save user data
-    print("👉 Saving user data locally");
-
-    await AndroidOperationsService.saveData(
-      "UserDetailL_LocalData",
-      jsonEncode(userResModel.toJson()),
-    );
-
-    await AndroidOperationsService.saveData(
-      "UserRequest_LocalData",
-      jsonEncode(userRequestModel.toJson()),
-    );
-
-    // 🔹 Check local data
-    print("👉 Checking local data");
-
-    String? modelLocalList =
-        await AndroidOperationsService.getData("MODEL_LocalList");
-    String? koelLocalList =
-        await AndroidOperationsService.getData("KOEL_LocalList");
-    String? pidByAddrSeqData =
-        await AndroidOperationsService.getData("PidByAddrSeqData");
-    String? sessionLocalList =
-        await AndroidOperationsService.getData("Session_LocalList");
-    String? variantLocalList =
-        await AndroidOperationsService.getData("Variant_LocalList");
-    String? freezeFrameLocalList =
-        await AndroidOperationsService.getData("FreezeFrame_LocalList");
-    String? iorLocalList =
-        await AndroidOperationsService.getData("IOR_LocalList");
-    String? actuatorLocalList =
-        await AndroidOperationsService.getData("Actuator_LocalList");
-    String? parameterLocalList =
-        await AndroidOperationsService.getData("Parameter_LocalList");
-
-    print("👉 Local check done");
-
-    double totalDays = 0;
-
-    String? date = await AppPreferences.getString("last_update");
-    print("👉 Last update date: $date");
-
-    if (date != null && date.isNotEmpty) {
-      try {
-        DateTime lastUpdateDate =
-            DateFormat("dd-MM-yyyy").parse(date);
-
-        totalDays =
-            DateTime.now().difference(lastUpdateDate).inDays.toDouble();
-
-        print("👉 Total days since update: $totalDays");
-      } catch (e) {
-        print("❌ Date parse error: $e");
-      }
-    }
-
-    // 🔹 Decide flow
-    bool needsUpdate = modelLocalList == null ||
-        koelLocalList == null ||
-        pidByAddrSeqData == null ||
-        sessionLocalList == null ||
-        variantLocalList == null ||
-        freezeFrameLocalList == null ||
-        iorLocalList == null ||
-        actuatorLocalList == null ||
-        parameterLocalList == null ||
-        totalDays > 7;
-
-    bool result;
-
-    if (needsUpdate) {
-      print("👉 Updating LOCAL DATA required");
-
-      showLoading(
-        "Updating Local Data...\nPlease Wait...\nThis may take few minutes",
-      );
-
+      showLoading("Logging In...");
       await Future.delayed(const Duration(milliseconds: 50));
 
-      result = await updateModelToLocal(totalDays > 7);
-    } else {
-      print("👉 Going to loginOffline()");
-      result = await loginOffline();
+      print("👉 Calling API login");
+
+      userResModel = await AuthApiService.login(userRequestModel);
+
+      print("👉 API RESPONSE RECEIVED");
+      print("Message: ${userResModel.message}");
+      print("User: ${userResModel.user}");
+      print("Error: ${userResModel.error}");
+      print("Detail: ${userResModel.detail}");
+
+      // ❌ FAILURE CASE
+      if (userResModel.message != "success") {
+        print("❌ LOGIN FAILED");
+        await alertMessage(userResModel.message ?? "Login failed");
+        return false;
+      }
+
+      // ❌ INACTIVE USER CASE
+      if (userResModel.isActive == false) {
+        print("❌ USER NOT ACTIVE");
+        await alertMessage(
+          "${userResModel.error ?? ''}\n${userResModel.detail ?? ''}",
+        );
+        return false;
+      }
+
+      // ✅ SUCCESS CASE
+      print("✅ LOGIN SUCCESS BLOCK");
+
+      App.oemId = userResModel.profile?.oem?.id ?? 0;
+      App.userId = userResModel.userId ?? 0;
+      App.userEmail = userResModel.user ?? '';
+      App.jwtToken = userResModel.token?.access ?? '';
+      App.userRole = userResModel.role ?? '';
+
+      print("👉 User assigned to App");
+
+      if (userResModel.licences != null) {
+        print("👉 Init runtime licence");
+        initRuntimeLicence(userResModel.licences!);
+      }
+
+      // 🔹 Load previous user
+      String? previousUserDetail =
+          await AndroidOperationsService.getData("UserDetailL_LocalData");
+
+      if (previousUserDetail != null && previousUserDetail.isNotEmpty) {
+        var prev = UserResModel.fromJson(jsonDecode(previousUserDetail));
+
+        if (userResModel.userId != prev.userId) {
+          print("👉 Different user detected, clearing parameter list");
+          await AndroidOperationsService.saveData("Parameter_LocalList", "");
+        }
+      }
+
+      // 🔹 Save user data
+      print("👉 Saving user data locally");
+
+      await AndroidOperationsService.saveData(
+        "UserDetailL_LocalData",
+        jsonEncode(userResModel.toJson()),
+      );
+
+      await AndroidOperationsService.saveData(
+        "UserRequest_LocalData",
+        jsonEncode(userRequestModel.toJson()),
+      );
+
+      // 🔹 Check local data
+      print("👉 Checking local data");
+
+      String? modelLocalList =
+          await AndroidOperationsService.getData("MODEL_LocalList");
+      String? koelLocalList =
+          await AndroidOperationsService.getData("KOEL_LocalList");
+      String? pidByAddrSeqData =
+          await AndroidOperationsService.getData("PidByAddrSeqData");
+      String? sessionLocalList =
+          await AndroidOperationsService.getData("Session_LocalList");
+      String? variantLocalList =
+          await AndroidOperationsService.getData("Variant_LocalList");
+      String? freezeFrameLocalList =
+          await AndroidOperationsService.getData("FreezeFrame_LocalList");
+      String? iorLocalList =
+          await AndroidOperationsService.getData("IOR_LocalList");
+      String? actuatorLocalList =
+          await AndroidOperationsService.getData("Actuator_LocalList");
+      String? parameterLocalList =
+          await AndroidOperationsService.getData("Parameter_LocalList");
+
+      print("👉 Local check done");
+
+      double totalDays = 0;
+
+      String? date = await AndroidOperationsService.getData("last_update");
+      print("👉 Last update date: $date");
+
+      if (date != null && date.toString().isNotEmpty) {
+        try {
+          DateTime lastUpdateDate = DateFormat("dd-MM-yyyy").parse(date);
+
+          totalDays =
+              DateTime.now().difference(lastUpdateDate).inDays.toDouble();
+
+          print("👉 Total days since update: $totalDays");
+        } catch (e) {
+          print("❌ Date parse error: $e");
+        }
+      }
+
+      // 🔹 Decide flow
+      bool needsUpdate = modelLocalList == null ||
+          koelLocalList == null ||
+          pidByAddrSeqData == null ||
+          sessionLocalList == null ||
+          variantLocalList == null ||
+          freezeFrameLocalList == null ||
+          iorLocalList == null ||
+          actuatorLocalList == null ||
+          parameterLocalList == null ||
+          totalDays > 7;
+
+      bool result;
+
+      if (needsUpdate) {
+        print("👉 Updating LOCAL DATA required");
+
+        showLoading(
+          "Updating Local Data...\nPlease Wait...\nThis may take few minutes",
+        );
+
+        result = await updateModelToLocal(totalDays > 7);
+      } else {
+        print("👉 Local data is up to date, skipping update");
+
+        result = true; // IMPORTANT FIX
+      }
+      print("👉 loginOnline RETURN: $result");
+      return result;
+    } catch (ex, st) {
+      print("❌ EXCEPTION loginOnline: $ex");
+      print("STACK: $st");
+
+      await alertMessage("$ex", "Exception in loginOnline()");
+      return false;
+    } finally {
+      print("👉 HIDE LOADING");
+      hideLoading();
     }
-
-    print("👉 loginOnline RETURN: $result");
-    return result;
-
-  } catch (ex, st) {
-    print("❌ EXCEPTION loginOnline: $ex");
-    print("STACK: $st");
-
-    await alertMessage("$ex", "Exception in loginOnline()");
-    return false;
-
-  } finally {
-    print("👉 HIDE LOADING");
-    hideLoading();
   }
-}
+
   void initRuntimeLicence(Licences licences) {
     try {
       StaticData.runTimeLicenceList = [];
@@ -553,248 +552,250 @@ UserResModel userResModel = UserResModel();
   }
 
   Future<bool> updateModelToLocal(bool isExpired) async {
-  try {
-    print("👉 updateModelToLocal START");
+    try {
+      print("👉 updateModelToLocal START");
 
-    await AndroidOperationsService.saveData("Parameter_LocalList", "");
-    print("✔ Parameter_LocalList cleared");
+      await AndroidOperationsService.saveData("Parameter_LocalList", "");
+      print("✔ Parameter_LocalList cleared");
 
-    bool returnValue = false;
+      bool returnValue = false;
 
-    String? localData =
-        await AndroidOperationsService.getData("MODEL_LocalList");
+      String? localData =
+          await AndroidOperationsService.getData("MODEL_LocalList");
 
-    print("👉 MODEL_LocalList fetched: ${localData != null}");
+      print("👉 MODEL_LocalList fetched: ${localData != null}");
 
-    AllModelsModel? result;
+      AllModelsModel? result;
 
-    // STEP 1: LOAD MODEL DATA
-    if (localData == null || localData.isEmpty || isExpired) {
-      print("👉 Fetching models from API (isExpired=$isExpired)");
+      // STEP 1: LOAD MODEL DATA
+      if (localData == null || localData.isEmpty || isExpired) {
+        print("👉 Fetching models from API (isExpired=$isExpired)");
 
-      var resp = await services.getApiResponse(
-        "/api/v1/models/get-models/?oem=${userResModel.profile?.oem?.id}",
-      );
+        var resp = await services.getApiResponse(
+          "/api/v1/models/get-models/?oem=${userResModel.profile?.oem?.id}",
+        );
 
-      print("👉 Model API response success: ${resp.success}");
+        print("👉 Model API response success: ${resp.success}");
 
-      if (resp.success == true) {
-        result = AllModelsModel.fromJson(jsonDecode(resp.data ?? ''));
+        if (resp.success == true) {
+          result = AllModelsModel.fromJson(jsonDecode(resp.data ?? ''));
 
-        print("✔ Models parsed from API");
+          print("✔ Models parsed from API");
 
-        await AndroidOperationsService.saveData(
-            "MODEL_LocalList", resp.data ?? '');
+          await AndroidOperationsService.saveData(
+              "MODEL_LocalList", resp.data ?? '');
 
-        print("✔ MODEL_LocalList saved");
+          print("✔ MODEL_LocalList saved");
+        } else {
+          print("❌ Model API failed: ${resp.data}");
+          await alertMessage("Error in Saving Models List: ${resp.data}");
+          return false;
+        }
       } else {
-        print("❌ Model API failed: ${resp.data}");
-        await alertMessage("Error in Saving Models List: ${resp.data}");
+        print("👉 Loading models from LOCAL storage");
+
+        result = AllModelsModel.fromJson(jsonDecode(localData));
+
+        print("✔ Models parsed from LOCAL");
+      }
+
+      // Safety check
+      if (result == null || result.results == null) {
+        print("❌ result or result.results is NULL");
         return false;
       }
-    } else {
-      print("👉 Loading models from LOCAL storage");
 
-      result = AllModelsModel.fromJson(jsonDecode(localData));
+      print("👉 Total models: ${result.results!.length}");
 
-      print("✔ Models parsed from LOCAL");
-    }
+      // STEP 2: CHAIN OPERATIONS
+      print("👉 Starting PID/DTC download");
 
-    // Safety check
-    if (result == null || result.results == null) {
-      print("❌ result or result.results is NULL");
+      if (await downloadPidDtcToLocal(result.results, isExpired)) {
+        print("✔ PID/DTC DONE");
+
+        returnValue =
+            await downloadSequenceFileToLocal(result.results!, isExpired);
+
+        print("👉 Sequence file result: $returnValue");
+
+        if (returnValue) {
+          returnValue = await downloadPidByAddrSequenceFileToLocal(
+              result.results!, isExpired);
+
+          print("👉 PID By Addr result: $returnValue");
+        }
+
+        if (returnValue) {
+          returnValue = await downloadMappedPidToLocal(isExpired);
+          print("👉 Mapped PID result: $returnValue");
+        }
+
+        if (returnValue) {
+          returnValue = await updateSessionListToLocal(isExpired);
+          print("👉 Session list result: $returnValue");
+        }
+
+        if (returnValue) {
+          returnValue = await updateIorListToLocal(isExpired);
+          print("👉 IOR list result: $returnValue");
+        }
+
+        if (returnValue) {
+          returnValue = await updateActuatorListToLocal(isExpired);
+          print("👉 Actuator list result: $returnValue");
+        }
+
+        if (returnValue) {
+          returnValue = await updateVariantListToLocal(isExpired);
+          print("👉 Variant list result: $returnValue");
+        }
+
+        if (returnValue) {
+          returnValue = await updateFreezeFrameListToLocal(isExpired);
+          print("👉 Freeze frame result: $returnValue");
+        }
+
+        if (returnValue) {
+          print("👉 Updating ENV SET LIST");
+          returnValue = await updateEnvSetListToLocal(result.results ?? []);
+          print("👉 EnvSet result: $returnValue");
+        }
+
+        if (returnValue) {
+          print("👉 Fetching ticket list");
+          returnValue = await getTicketList(App.userId);
+          print("👉 Ticket list result: $returnValue");
+        }
+
+        if (returnValue) {
+          returnValue = await updateParameterListToLocal(isExpired);
+          print("👉 Parameter list result: $returnValue");
+        }
+      } else {
+        print("❌ PID/DTC FAILED");
+      }
+
+      print("👉 FINAL RETURN VALUE: $returnValue");
+
+      return returnValue;
+    } catch (e, st) {
+      print("❌ EXCEPTION in updateModelToLocal: $e");
+      print("STACKTRACE: $st");
+
+      await alertMessage("Exception in UpdateModelToLocal(): $e");
       return false;
     }
-
-    print("👉 Total models: ${result.results!.length}");
-
-    // STEP 2: CHAIN OPERATIONS
-    print("👉 Starting PID/DTC download");
-
-    if (await downloadPidDtcToLocal(result.results, isExpired)) {
-      print("✔ PID/DTC DONE");
-
-      returnValue = await downloadSequenceFileToLocal(
-          result.results!, isExpired);
-
-      print("👉 Sequence file result: $returnValue");
-
-      if (returnValue) {
-        returnValue = await downloadPidByAddrSequenceFileToLocal(
-            result.results!, isExpired);
-
-        print("👉 PID By Addr result: $returnValue");
-      }
-
-      if (returnValue) {
-        returnValue = await downloadMappedPidToLocal(isExpired);
-        print("👉 Mapped PID result: $returnValue");
-      }
-
-      if (returnValue) {
-        returnValue = await updateSessionListToLocal(isExpired);
-        print("👉 Session list result: $returnValue");
-      }
-
-      if (returnValue) {
-        returnValue = await updateIorListToLocal(isExpired);
-        print("👉 IOR list result: $returnValue");
-      }
-
-      if (returnValue) {
-        returnValue = await updateActuatorListToLocal(isExpired);
-        print("👉 Actuator list result: $returnValue");
-      }
-
-      if (returnValue) {
-        returnValue = await updateVariantListToLocal(isExpired);
-        print("👉 Variant list result: $returnValue");
-      }
-
-      if (returnValue) {
-        returnValue = await updateFreezeFrameListToLocal(isExpired);
-        print("👉 Freeze frame result: $returnValue");
-      }
-
-      if (returnValue) {
-        print("👉 Updating ENV SET LIST");
-        returnValue =
-            await updateEnvSetListToLocal(result.results ?? []);
-        print("👉 EnvSet result: $returnValue");
-      }
-
-      if (returnValue) {
-        print("👉 Fetching ticket list");
-        returnValue = await getTicketList(App.userId);
-        print("👉 Ticket list result: $returnValue");
-      }
-
-      if (returnValue) {
-        returnValue = await updateParameterListToLocal(isExpired);
-        print("👉 Parameter list result: $returnValue");
-      }
-    } else {
-      print("❌ PID/DTC FAILED");
-    }
-
-    print("👉 FINAL RETURN VALUE: $returnValue");
-
-    return returnValue;
-  } catch (e, st) {
-    print("❌ EXCEPTION in updateModelToLocal: $e");
-    print("STACKTRACE: $st");
-
-    await alertMessage("Exception in UpdateModelToLocal(): $e");
-    return false;
   }
-}
 
- Future<bool> downloadPidDtcToLocal(
-  List<ModelResult>? models,
-  bool isExpired,
-) async {
-  try {
-    print("👉 downloadPidDtcToLocal START");
-    print("👉 isExpired: $isExpired");
+  Future<bool> downloadPidDtcToLocal(
+    List<ModelResult>? models,
+    bool isExpired,
+  ) async {
+    try {
+      print("👉 downloadPidDtcToLocal START");
+      print("👉 isExpired: $isExpired");
 
-    bool result = false;
+      bool result = false;
 
-    List<Dataset> dtcDatasetList = [];
-    List<PidDataset> pidDatasetList = [];
-    List<MappedPidDataset> mappedPidDatasetList = [];
+      List<Dataset> dtcDatasetList = [];
+      List<PidDataset> pidDatasetList = [];
+      List<MappedPidDataset> mappedPidDatasetList = [];
 
-    if (models != null && models.isNotEmpty) {
-      print("👉 Total models: ${models.length}");
+      if (models != null && models.isNotEmpty) {
+        print("👉 Total models: ${models.length}");
 
-      for (var model in models) {
-        print("👉 Model: ${model.modelName} (ID: ${model.id})");
+        for (var model in models) {
+          print("👉 Model: ${model.modelName} (ID: ${model.id})");
 
-        if (model.subModels != null && model.subModels!.isNotEmpty) {
-          for (var subModel in model.subModels!) {
-            print("   👉 SubModel: ${subModel.name} (ID: ${subModel.id})");
+          if (model.subModels != null && model.subModels!.isNotEmpty) {
+            for (var subModel in model.subModels!) {
+              print("   👉 SubModel: ${subModel.name} (ID: ${subModel.id})");
 
-            if (subModel.ecus != null && subModel.ecus!.isNotEmpty) {
-              for (var ecu in subModel.ecus!) {
-                print("      👉 ECU: ${ecu.name} (ID: ${ecu.id})");
+              if (subModel.ecus != null && subModel.ecus!.isNotEmpty) {
+                for (var ecu in subModel.ecus!) {
+                  print("      👉 ECU: ${ecu.name} (ID: ${ecu.id})");
 
-                // DTC datasets
-                if (ecu.datasets != null && ecu.datasets!.isNotEmpty) {
-                  print("         ✔ DTC datasets: ${ecu.datasets!.length}");
+                  // DTC datasets
+                  if (ecu.datasets != null && ecu.datasets!.isNotEmpty) {
+                    print("         ✔ DTC datasets: ${ecu.datasets!.length}");
 
-                  for (var dtcDataset in ecu.datasets!) {
-                    dtcDatasetList.add(dtcDataset);
-                  }
+                    for (var dtcDataset in ecu.datasets!) {
+                      dtcDatasetList.add(dtcDataset);
+                    }
 
-                  // version datasets → convert to Dataset
-                  if (ecu.versionDataset != null &&
-                      ecu.versionDataset!.isNotEmpty) {
-                    print("         ✔ Version datasets: ${ecu.versionDataset!.length}");
+                    // version datasets → convert to Dataset
+                    if (ecu.versionDataset != null &&
+                        ecu.versionDataset!.isNotEmpty) {
+                      print(
+                          "         ✔ Version datasets: ${ecu.versionDataset!.length}");
 
-                    for (var versionDataset in ecu.versionDataset!) {
-                      dtcDatasetList.add(
-                        Dataset(id: versionDataset.dataset),
-                      );
+                      for (var versionDataset in ecu.versionDataset!) {
+                        dtcDatasetList.add(
+                          Dataset(id: versionDataset.dataset),
+                        );
+                      }
                     }
                   }
-                }
 
-                // PID datasets
-                if (ecu.pidDatasets != null &&
-                    ecu.pidDatasets!.isNotEmpty) {
-                  print("         ✔ PID datasets: ${ecu.pidDatasets!.length}");
+                  // PID datasets
+                  if (ecu.pidDatasets != null && ecu.pidDatasets!.isNotEmpty) {
+                    print(
+                        "         ✔ PID datasets: ${ecu.pidDatasets!.length}");
 
-                  for (var pidDataset in ecu.pidDatasets!) {
-                    pidDatasetList.add(pidDataset);
+                    for (var pidDataset in ecu.pidDatasets!) {
+                      pidDatasetList.add(pidDataset);
+                    }
                   }
-                }
 
-                // Mapped PID datasets
-                if (ecu.mappedPidDatasets != null &&
-                    ecu.mappedPidDatasets!.isNotEmpty) {
-                  print("         ✔ Mapped PID datasets: ${ecu.mappedPidDatasets!.length}");
+                  // Mapped PID datasets
+                  if (ecu.mappedPidDatasets != null &&
+                      ecu.mappedPidDatasets!.isNotEmpty) {
+                    print(
+                        "         ✔ Mapped PID datasets: ${ecu.mappedPidDatasets!.length}");
 
-                  for (var mappedPidDataset in ecu.mappedPidDatasets!) {
-                    mappedPidDatasetList.add(mappedPidDataset);
+                    for (var mappedPidDataset in ecu.mappedPidDatasets!) {
+                      mappedPidDatasetList.add(mappedPidDataset);
+                    }
                   }
                 }
               }
             }
           }
         }
+      } else {
+        print("❌ Models list is NULL or EMPTY");
       }
-    } else {
-      print("❌ Models list is NULL or EMPTY");
+
+      print("👉 FINAL PID dataset count: ${pidDatasetList.length}");
+      print("👉 FINAL DTC dataset count: ${dtcDatasetList.length}");
+      print(
+          "👉 FINAL Mapped PID dataset count: ${mappedPidDatasetList.length}");
+
+      // STEP 1: download PID
+      print("👉 Starting PID download...");
+      result = await downloadPidToLocal(pidDatasetList, isExpired);
+      print("👉 PID download result: $result");
+
+      // STEP 2: download DTC if PID success
+      if (result) {
+        print("👉 Starting DTC download...");
+        result = await downloadDtcToLocal(dtcDatasetList, isExpired);
+        print("👉 DTC download result: $result");
+      } else {
+        print("❌ PID download failed, skipping DTC");
+      }
+
+      print("👉 downloadPidDtcToLocal FINAL RESULT: $result");
+
+      return result;
+    } catch (e, st) {
+      print("❌ Exception in DownloadPidDtcToLocal: $e");
+      print("STACKTRACE: $st");
+
+      await alertMessage("Exception in DownloadPidDtcToLocal(): $e");
+      return false;
     }
-
-    print("👉 FINAL PID dataset count: ${pidDatasetList.length}");
-    print("👉 FINAL DTC dataset count: ${dtcDatasetList.length}");
-    print("👉 FINAL Mapped PID dataset count: ${mappedPidDatasetList.length}");
-
-    // STEP 1: download PID
-    print("👉 Starting PID download...");
-    result = await downloadPidToLocal(pidDatasetList, isExpired);
-    print("👉 PID download result: $result");
-
-    // STEP 2: download DTC if PID success
-    if (result) {
-      print("👉 Starting DTC download...");
-      result = await downloadDtcToLocal(dtcDatasetList, isExpired);
-      print("👉 DTC download result: $result");
-    } else {
-      print("❌ PID download failed, skipping DTC");
-    }
-
-    print("👉 downloadPidDtcToLocal FINAL RESULT: $result");
-
-    return result;
-  } catch (e, st) {
-    print("❌ Exception in DownloadPidDtcToLocal: $e");
-    print("STACKTRACE: $st");
-
-    await alertMessage("Exception in DownloadPidDtcToLocal(): $e");
-    return false;
   }
-}
 
   Future<bool> downloadPidToLocal(
     List<PidDataset> pidDatasets,
@@ -1056,58 +1057,60 @@ UserResModel userResModel = UserResModel();
     }
   }
 
- Future<bool> updateSessionListToLocal(bool isExpired) async {
-  try {
-    print("👉 updateSessionListToLocal START");
-    print("👉 isExpired: $isExpired");
+  Future<bool> updateSessionListToLocal(bool isExpired) async {
+    try {
+      print("👉 updateSessionListToLocal START");
+      print("👉 isExpired: $isExpired");
 
-    String? localData =
-        await AndroidOperationsService.getData("Session_LocalList");
+      String? localData =
+          await AndroidOperationsService.getData("Session_LocalList");
 
-    print("👉 Local Session data exists: ${localData != null && localData.isNotEmpty}");
+      print(
+          "👉 Local Session data exists: ${localData != null && localData.isNotEmpty}");
 
-    // If no local data OR expired → fetch from API
-    if (localData == null || localData.isEmpty || isExpired) {
-      print("👉 Fetching Session List from API");
+      // If no local data OR expired → fetch from API
+      if (localData == null || localData.isEmpty || isExpired) {
+        print("👉 Fetching Session List from API");
 
-      print("👉 API URL: /api/v1/analyze/srsession-list/?created_by=${App.userId}");
+        print(
+            "👉 API URL: /api/v1/analyze/srsession-list/?created_by=${App.userId}");
 
-      var resp = await services.getApiResponse(
-        "/api/v1/analyze/srsession-list/?created_by=${App.userId}",
-      );
-
-      print("👉 Session API response success: ${resp.success}");
-
-      if (resp.success == true) {
-        print("✔ Session API SUCCESS");
-
-        await AndroidOperationsService.saveData(
-          "Session_LocalList",
-          resp.data ?? '',
+        var resp = await services.getApiResponse(
+          "/api/v1/analyze/srsession-list/?created_by=${App.userId}",
         );
 
-        print("✔ Session data saved locally");
+        print("👉 Session API response success: ${resp.success}");
 
-        return true;
-      } else {
-        print("❌ Session API FAILED: ${resp.data}");
+        if (resp.success == true) {
+          print("✔ Session API SUCCESS");
 
-        alertMessage("Error in Saving Session List: ${resp.data}");
-        return false;
+          await AndroidOperationsService.saveData(
+            "Session_LocalList",
+            resp.data ?? '',
+          );
+
+          print("✔ Session data saved locally");
+
+          return true;
+        } else {
+          print("❌ Session API FAILED: ${resp.data}");
+
+          alertMessage("Error in Saving Session List: ${resp.data}");
+          return false;
+        }
       }
+
+      print("👉 Using existing local Session data (no API call)");
+      return true;
+    } catch (e, st) {
+      print("❌ Exception in UpdateSessionListToLocal: $e");
+      print("STACKTRACE: $st");
+
+      alertMessage("Exception in UpdateSessionListToLocal(): $e");
+      return false;
     }
-
-    print("👉 Using existing local Session data (no API call)");
-    return true;
-
-  } catch (e, st) {
-    print("❌ Exception in UpdateSessionListToLocal: $e");
-    print("STACKTRACE: $st");
-
-    alertMessage("Exception in UpdateSessionListToLocal(): $e");
-    return false;
   }
-}
+
   Future<bool> updateVariantListToLocal(bool isExpired) async {
     try {
       String? localData =
@@ -1208,41 +1211,41 @@ UserResModel userResModel = UserResModel();
   // }
 
   Future<bool> updateEnvSetListToLocal(List<ModelResult>? models) async {
-  try {
-    if (models == null || models.isEmpty) return true;
+    try {
+      if (models == null || models.isEmpty) return true;
 
-    for (var model in models) {
-      if (model.subModels == null) continue;
+      for (var model in models) {
+        if (model.subModels == null) continue;
 
-      for (var subModel in model.subModels!) {
-        if (subModel.ecus == null) continue;
+        for (var subModel in model.subModels!) {
+          if (subModel.ecus == null) continue;
 
-        for (var ecu in subModel.ecus!) {
-          var resp = await services.getApiResponse(
-            "/api/v1/datasets/get-environment-snapshot/?ecu=${ecu.id}",
-          );
-
-          if (resp.success == true) {
-            await AndroidOperationsService.saveData(
-              "EnvSet_LocalList_forEcu_${ecu.id}",
-              resp.data ?? '',
+          for (var ecu in subModel.ecus!) {
+            var resp = await services.getApiResponse(
+              "/api/v1/datasets/get-environment-snapshot/?ecu=${ecu.id}",
             );
-          } else {
-            await alertMessage(
-              "Error in Saving Environment Snapshot: ${resp.data}",
-            );
-            return false;
+
+            if (resp.success == true) {
+              await AndroidOperationsService.saveData(
+                "EnvSet_LocalList_forEcu_${ecu.id}",
+                resp.data ?? '',
+              );
+            } else {
+              await alertMessage(
+                "Error in Saving Environment Snapshot: ${resp.data}",
+              );
+              return false;
+            }
           }
         }
       }
-    }
 
-    return true;
-  } catch (e) {
-    await alertMessage("Exception in UpdateEnvSetListToLocal(): $e");
-    return false;
+      return true;
+    } catch (e) {
+      await alertMessage("Exception in UpdateEnvSetListToLocal(): $e");
+      return false;
+    }
   }
-}
 
   Future<bool> updateIorListToLocal(bool isExpired) async {
     try {

@@ -41,4 +41,5 @@ class Routes {
   static const appFeaturePage = '/appFeaturePage';
   static const tickitScreen = '/tickitScreen';
   static const tickitList = '/tickitList';
+  static const localDatasetFiles = '/localDatasetFiles';
 }

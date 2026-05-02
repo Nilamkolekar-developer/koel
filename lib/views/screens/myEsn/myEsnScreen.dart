@@ -1,122 +1,133 @@
-import 'package:autopeepal/common_widgets/custom_drawer.dart';
-import 'package:autopeepal/routes/routes_string.dart';
+import 'package:autopeepal/logic/controller/myEsn/myEsnController.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:autopeepal/routes/routes_string.dart';
+import 'package:autopeepal/common_widgets/custom_drawer.dart';
 
-class MyESNPage extends StatelessWidget {
-  const MyESNPage({super.key});
-
+class SrnTypeSelectionPage extends StatelessWidget {
+  SrnTypeSelectionPage({super.key});
+  final controller = Get.put(Myesncontroller());
   final Color themeColor = const Color(0xFF309F93);
-  final Color alertColor = Colors.red;
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 800;
+    final isTablet = MediaQuery.of(context).size.width > 600;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      drawer: const MyESNDrawer(),
+      backgroundColor: const Color(0xFFF5F5F5),
+
+      // Drawer (like MAUI navigation drawer)
+      drawer: MyESNDrawer(),
+
+      // Floating ADD button (same as ImageButton in MAUI)
       floatingActionButton: FloatingActionButton(
         onPressed: () => Get.toNamed(Routes.addServiceForm),
         backgroundColor: themeColor,
         shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
+        child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
-      body: Column(
-        children: [
-          // 1. Header: Menu (Left) | Logo (Right)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 30),
-            child: SafeArea(
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            // =========================
+            // TITLE BAR (My SRN + Logo)
+            // =========================
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Builder(
-                    builder: (context) => IconButton(
-                      icon: const Icon(Icons.menu,
-                          size: 40, color: Colors.black),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
+                  const Text(
+                    "My SRN",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
                     ),
                   ),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(
-                        maxHeight: 45, maxWidth: 120),
-                    child: Image.asset(
-                      'assets/new/ic_ikonnect.jpg',
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.broken_image,
-                        color: Colors.black,
-                        size: 30,
-                      ),
-                    ),
+                  Image.asset(
+                    'assets/new/ic_ikonnect.jpg',
+                    height: 30,
+                    errorBuilder: (_, __, ___) =>
+                        const Icon(Icons.image_not_supported),
                   ),
                 ],
               ),
             ),
-          ),
 
-          // 2. Center Content
-          Expanded(
-            child: Center(
-              child: SizedBox(
-                // ✅ Constrain width on wide screens, full width on mobile
-                width: isWide ? 500 : double.infinity,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildActionButton(
-                      text: 'Open Service Request',
-                      icon: Icons.close_outlined,
-                      iconColor: alertColor,
-                      onTap: () => Get.toNamed(Routes.openServiceRequest),
-                    ),
-                    const SizedBox(height: 25),
-                    _buildActionButton(
-                      text: 'Close Service Request',
-                      icon: Icons.check_circle_outline,
-                      iconColor: themeColor,
-                      onTap: () => Get.toNamed(Routes.closeServiceRequest),
-                    ),
-                  ],
+            const SizedBox(height: 40),
+
+            // =========================
+            // CENTER BUTTONS
+            // =========================
+            Expanded(
+              child: Center(
+                child: SizedBox(
+                  width: isTablet ? 500 : double.infinity,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildFrameButton(
+                        text: "Open Service Request",
+                        icon: Icons.close,
+                        onTap: () {
+                          controller.openSrnCommand();
+                        },
+                      ),
+                      const SizedBox(height: 40),
+                      _buildFrameButton(
+                        text: "Closed Service Request",
+                        icon: Icons.check_circle,
+                        onTap: () {
+                          controller.closeSrnCommand();
+                        }
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildActionButton({
+  // =========================
+  // FRAME STYLE BUTTON (MAUI Frame equivalent)
+  // =========================
+  Widget _buildFrameButton({
     required String text,
     required IconData icon,
-    required Color iconColor,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(35),
-      child: Container(
-        width: 320,
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 25),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(35),
-          border: Border.all(color: themeColor, width: 1),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              text,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+    return Center(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(40),
+        child: Container(
+          width: 320,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(40),
+            border: Border.all(color: themeColor, width: 1.5),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            Icon(icon, color: iconColor, size: 28),
-          ],
+              Icon(icon, color: themeColor, size: 28),
+            ],
+          ),
         ),
       ),
     );

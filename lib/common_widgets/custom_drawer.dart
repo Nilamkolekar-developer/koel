@@ -1,10 +1,11 @@
+import 'package:autopeepal/logic/controller/dataSync/dataSyncController.dart';
 import 'package:autopeepal/routes/routes_string.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class MyESNDrawer extends StatelessWidget {
-  const MyESNDrawer({super.key});
-
+   MyESNDrawer({super.key});
+final DataSyncController dataSyncController = Get.find();
   // Updated theme color to #309f93
   final Color themeColor = const Color(0xFF309F93); 
 
@@ -62,11 +63,11 @@ class MyESNDrawer extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _buildMenuItem("My SRN", () => Get.toNamed('/srn')),
-                _buildMenuItem("Flash File", () => Get.toNamed('/flash')),
+                _buildMenuItem("My SRN", () => Get.toNamed(Routes.esnScreen)),
+                _buildMenuItem("Flash File", () => Get.toNamed(Routes.localDatasetFiles)),
                 _buildMenuItem("Change Password", () => Get.toNamed('/password')),
-                _buildMenuItem("Data Sync", () => Get.toNamed('/sync')),
-                _buildMenuItem("Help & Support", () => Get.toNamed('/help')),
+                _buildMenuItem("Data Sync", () =>   dataSyncController.btnDataSyncClicked(context)),
+                _buildMenuItem("Help & Support", () => Get.toNamed(Routes.tickitList)),
                 _buildMenuItem("Logout", () => _handleLogout()),
               ],
             ),

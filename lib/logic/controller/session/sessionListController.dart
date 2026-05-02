@@ -26,8 +26,7 @@ class SessionListController extends GetxController {
 
     if (App.workshopGrp == 6) {
       btnStatus.value = false;
-    } else if (sessionList.isNotEmpty &&
-        sessionList.first.status == "open") {
+    } else if (sessionList.isNotEmpty && sessionList.first.status == "open") {
       btnStatus.value = true;
     } else {
       btnStatus.value = false;
@@ -57,7 +56,8 @@ class SessionListController extends GetxController {
     try {
       await Future.delayed(const Duration(milliseconds: 50));
 
-      final jsonData = await AndroidOperationsService.getData("MODEL_LocalList");
+      final jsonData =
+          await AndroidOperationsService.getData("MODEL_LocalList");
       if (jsonData!.isEmpty) {
         Get.snackbar("Failed", "Model not found in local database");
         Get.back();
@@ -74,8 +74,8 @@ class SessionListController extends GetxController {
 
       StaticData.ecuInfo = [];
 
-      final model = models.results!.firstWhereOrNull(
-          (x) => x.id == item.variant!.modelId);
+      final model = models.results!
+          .firstWhereOrNull((x) => x.id == item.variant!.modelId);
 
       if (model == null) {
         Get.snackbar("Failed", "Model not found");
@@ -85,8 +85,8 @@ class SessionListController extends GetxController {
 
       App.modelId = item.variant!.modelId!;
 
-      final subModel = model.subModels!.firstWhereOrNull(
-          (x) => x.id == item.variant!.sModelId);
+      final subModel = model.subModels!
+          .firstWhereOrNull((x) => x.id == item.variant!.sModelId);
 
       if (subModel == null) {
         Get.snackbar("Failed", "Sub model not found");
@@ -130,7 +130,6 @@ class SessionListController extends GetxController {
 //   }
 // }
 
-
       Get.back(); // close loader
 
       // Get.toNamed(
@@ -153,8 +152,11 @@ class SessionListController extends GetxController {
         title: const Text("Alert"),
         content: const Text("Do you want to close this SR Session?"),
         actions: [
-          TextButton(onPressed: () => Get.back(result: false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Get.back(result: true), child: const Text("OK")),
+          TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text("Cancel")),
+          TextButton(
+              onPressed: () => Get.back(result: true), child: const Text("OK")),
         ],
       ),
     );
@@ -166,23 +168,22 @@ class SessionListController extends GetxController {
 
     try {
       final result = await services.closeSession(
-        item.id??0,
-        CloseSession(status: "closed"),
+        item.id ?? 0,
+        CloseSessionRequest(status: "closed"),
       );
-
-      if (result.message == "success" &&
-          result.status == "closed") {
+      if (result.message == "success" && result.status == "closed") {
         Get.snackbar("Success", "Session closed");
 
         final res = await services.getAllSessionList(App.userId);
 
         if (res.message == "success" && res.results!.isNotEmpty) {
-          sessionList.assignAll(
-              res.results!..sort((a, b) => b.id!.compareTo(a.id!)));
+          sessionList
+              .assignAll(res.results!..sort((a, b) => b.id!.compareTo(a.id!)));
 
           staticSessionList.assignAll(sessionList);
 
-          await AndroidOperationsService. saveData("Session_LocalList", json.encode(res));
+          await AndroidOperationsService.saveData(
+              "Session_LocalList", json.encode(res));
         } else {
           Get.snackbar("Failed", "Session list not found");
         }
@@ -205,7 +206,8 @@ class SessionListController extends GetxController {
         barrierDismissible: false);
 
     try {
-      final jsonData = await AndroidOperationsService. getData("Variant_LocalList");
+      final jsonData =
+          await AndroidOperationsService.getData("Variant_LocalList");
 
       if (jsonData!.isEmpty) {
         Get.snackbar("Error", "Variants not found. Update local data.");
@@ -213,18 +215,15 @@ class SessionListController extends GetxController {
         return;
       }
 
-      final variantModel =
-          VariantModel.fromJson(json.decode(jsonData));
+      final variantModel = VariantModel.fromJson(json.decode(jsonData));
 
       if (variantModel.results!.isEmpty) {
         Get.snackbar("Error", "Variants not found");
       } else {
         final validList = variantModel.results!.where((v) {
-          return (v.workshopGroup
-                      ?.any((x) => x.id == App.workshopGrp) ??
+          return (v.workshopGroup?.any((x) => x.id == App.workshopGrp) ??
                   false) ||
-              (v.workshop?.any((x) => x.id == App.workshop) ??
-                  false);
+              (v.workshop?.any((x) => x.id == App.workshop) ?? false);
         }).toList();
 
         variantModel.results = validList;
@@ -251,16 +250,16 @@ class SessionListController extends GetxController {
 
   Future<void> getSessionList() async {
     try {
-      final jsonData = await AndroidOperationsService. getData("Session_LocalList");
+      final jsonData =
+          await AndroidOperationsService.getData("Session_LocalList");
 
       if (jsonData!.isEmpty) return;
 
-      final res =
-          SessionListModel.fromJson(json.decode(jsonData));
+      final res = SessionListModel.fromJson(json.decode(jsonData));
 
       if (res.message == "success" && res.results!.isNotEmpty) {
-        sessionList.assignAll(
-            res.results!..sort((a, b) => b.id!.compareTo(a.id!)));
+        sessionList
+            .assignAll(res.results!..sort((a, b) => b.id!.compareTo(a.id!)));
 
         staticSessionList.assignAll(sessionList);
       } else {
@@ -281,8 +280,8 @@ class SessionListController extends GetxController {
     if (value.isEmpty) {
       sessionList.assignAll(staticSessionList);
     } else {
-      sessionList.assignAll(staticSessionList.where((s) =>
-          s.srNumber!.toLowerCase().contains(value.toLowerCase())));
+      sessionList.assignAll(staticSessionList.where(
+          (s) => s.srNumber!.toLowerCase().contains(value.toLowerCase())));
     }
   }
 }

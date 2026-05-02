@@ -184,6 +184,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:autopeepal/api/app_envirments.dart';
 import 'package:autopeepal/common_widgets/app_error_widget.dart';
+import 'package:autopeepal/logic/bindings/app_bindings.dart';
 import 'package:autopeepal/models/all_models.dart';
 import 'package:autopeepal/models/bluetoothDevices_model.dart';
 import 'package:autopeepal/models/jobCard_model.dart';
@@ -398,7 +399,7 @@ class MyApp extends StatelessWidget {
     final config = App.instance;
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      //initialBinding: AppBinding(),
+      initialBinding: AppBinding(),
       title: config.appName,
       initialRoute: Routes.splashScreen,
       theme: appTheme,

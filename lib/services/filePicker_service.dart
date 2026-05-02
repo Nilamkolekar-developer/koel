@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert'; // for utf8 decoding
 
@@ -15,7 +17,7 @@ class FilePickerService {
       if (file.name.isNotEmpty && file.bytes != null) {
         return FileResult(
           fileName: file.name,
-          fileContent: utf8.decode(file.bytes!), // convert bytes to string
+          fileContent: file.bytes!, // use the bytes directly
         );
       }
     }
@@ -26,7 +28,7 @@ class FilePickerService {
 
 class FileResult {
   final String fileName;
-  final String fileContent; // now string just like C#
+  final Uint8List fileContent; // ✅ FIXED (was String)
 
   FileResult({
     required this.fileName,

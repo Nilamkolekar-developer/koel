@@ -1,4 +1,3 @@
-
 import 'package:autopeepal/common_widgets/ui_helper_widgets.dart';
 import 'package:autopeepal/logic/controller/auth/loginController.dart';
 import 'package:autopeepal/routes/routes_string.dart';
@@ -17,9 +16,7 @@ class LoginScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: isWide
-          ? _buildWideLayout(context)
-          : _buildMobileLayout(context),
+      body: isWide ? _buildWideLayout(context) : _buildMobileLayout(context),
     );
   }
 
@@ -253,9 +250,9 @@ class LoginScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-        onPressed: () async {
-  await controller.loginMethod();
-},
+            onPressed: () async {
+              await controller.loginMethod();
+            },
             child: const Text(
               'Sign In',
               style: TextStyle(
@@ -297,121 +294,127 @@ class LoginScreen extends StatelessWidget {
 
   // ── Help Dialog ───────────────────────────────
   void showHelpDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) {
-      return Dialog(
-        // Shape ensures the dialog corners are rounded
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        // InsetPadding prevents the dialog from touching the screen edges on mobile/Windows
-        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-        child: Container(
-          // Limit the width so it doesn't look too wide on your Windows laptop
-          constraints: const BoxConstraints(maxWidth: 400), 
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // --- Header Section ---
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF309F93),
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    "Help",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
-              // --- Content Section ---
-              // --- Content Section ---
-const Padding(
-  padding: EdgeInsets.fromLTRB(24, 30, 24, 10),
-  child: Column(
-    children: [
-      Text(
-        "Please reach out to KOEL HO team in case of any assistance with the app",
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 16,
-          color: Colors.black87,
-          height: 1.4,
-        ),
-      ),
-      SizedBox(height: 12), // Space for the new line
-      Text(
-        "(F24134C472C50AAD)",
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF309F93), // Using your teal color for the code
-          letterSpacing: 1.2,
-        ),
-      ),
-    ],
-  ),
-),
-
-              // --- Action Buttons Section ---
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // Cancel Button
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        "Cancel",
-                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Create Ticket Button
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF309F93),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
-                      ),
-                      onPressed: () {
-                    Get.toNamed(Routes.tickitScreen);
-                      },
-                      child: const Text(
-                        "Create Ticket",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          // Shape ensures the dialog corners are rounded
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        ),
-      );
-    },
-  );
-}
+          // InsetPadding prevents the dialog from touching the screen edges on mobile/Windows
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+          child: Container(
+            // Limit the width so it doesn't look too wide on your Windows laptop
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // --- Header Section ---
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF309F93),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      "Help",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // --- Content Section ---
+                // --- Content Section ---
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 30, 24, 10),
+                  child: Column(
+                    children: [
+                      Text(
+                        "Please reach out to KOEL HO team in case of any assistance with the app",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                          height: 1.4,
+                        ),
+                      ),
+                      SizedBox(height: 12), // Space for the new line
+                      Text(
+                        "(F24134C472C50AAD)",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(
+                              0xFF309F93), // Using your teal color for the code
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // --- Action Buttons Section ---
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      // Cancel Button
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "Cancel",
+                          style: TextStyle(
+                              color: Colors.grey, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Create Ticket Button
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF309F93),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          Get.toNamed(Routes.tickitScreen);
+                        },
+                        child: const Text(
+                          "Create Ticket",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _fieldLabel(String label) {
     return Text(
       label,

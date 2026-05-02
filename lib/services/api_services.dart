@@ -1021,7 +1021,12 @@ class AuthApiService {
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
           // Success: Deserialize the JSON string into the model
-          sessionListModel = SessionListModel.fromJson(jsonDecode(data));
+          // sessionListModel = SessionListModel.fromJson(jsonDecode(data));
+          final decoded = jsonDecode(data);
+
+final safeJson = Map<String, dynamic>.from(decoded);
+
+sessionListModel = SessionListModel.fromJson(safeJson);
           sessionListModel.message = "success";
         } else {
           // Handle API level errors
@@ -1041,110 +1046,224 @@ class AuthApiService {
     }
   }
 
+  // Future<CloseSessionResponse> closeSession(
+  //     int srSessionId, CloseSession model) async {
+  //   CloseSessionResponse closeSessionResponse = CloseSessionResponse();
+
+  //   try {
+  //     // 1. Check Connectivity using your service
+  //     bool isConnected = await AndroidOperationsService.hasInternet();
+
+  //     if (isConnected) {
+  //       // 2. Prepare URL (Path parameters) and JSON body
+  //       final url = Uri.parse(
+  //           '${AppEnvironment.baseUrl}/api/v1/analyze/sr-session/$srSessionId/close-session/');
+  //       final jsonPayload = jsonEncode(model.toJson());
+
+  //       // 3. Prepare Authorization Headers
+  //       Map<String, String> headers = {
+  //         'Authorization': 'JWT ${App.jwtToken}',
+  //         'Content-Type': 'application/json',
+  //       };
+
+  //       // 4. Execute the PUT Request
+  //       final response = await http.put(
+  //         url,
+  //         headers: headers,
+  //         body: jsonPayload,
+  //       );
+
+  //       final data = response.body;
+
+  //       // Optional: Debug printing
+  //       print('--- Close Session API ---');
+  //       print('URL: $url');
+  //       print('REQUEST: $jsonPayload');
+  //       print('RESPONSE: $data');
+  //       print('-------------------------');
+
+  //       if (response.statusCode >= 200 && response.statusCode < 300) {
+  //         // Success: Deserialize the response
+  //         closeSessionResponse =
+  //             CloseSessionResponse.fromJson(jsonDecode(data));
+  //         closeSessionResponse.message = "success";
+  //       } else {
+  //         // Handle API level errors
+  //         closeSessionResponse.message =
+  //             "ApiServices.closeSession() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+  //       }
+  //     } else {
+  //       closeSessionResponse.message = "Please check internet connection.";
+  //     }
+
+  //     return closeSessionResponse;
+  //   } catch (ex) {
+  //     print("Exception in ApiServices.closeSession(): ${ex.toString()}");
+  //     closeSessionResponse.message =
+  //         "Exception in ApiServices.closeSession() : ${ex.toString()}";
+  //     return closeSessionResponse;
+  //   }
+  // }
   Future<CloseSessionResponse> closeSession(
-      int srSessionId, CloseSession model) async {
-    CloseSessionResponse closeSessionResponse = CloseSessionResponse();
+    int srSessionId,
+    CloseSessionRequest model,
+) async {
+  CloseSessionResponse closeSessionResponse = CloseSessionResponse();
 
-    try {
-      // 1. Check Connectivity using your service
-      bool isConnected = await AndroidOperationsService.hasInternet();
+  try {
+    bool isConnected = await AndroidOperationsService.hasInternet();
 
-      if (isConnected) {
-        // 2. Prepare URL (Path parameters) and JSON body
-        final url = Uri.parse(
-            '${AppEnvironment.baseUrl}/api/v1/analyze/sr-session/$srSessionId/close-session/');
-        final jsonPayload = jsonEncode(model.toJson());
+    if (isConnected) {
+      final url = Uri.parse(
+        '${AppEnvironment.baseUrl}/api/v1/analyze/sr-session/$srSessionId/close-session/',
+      );
 
-        // 3. Prepare Authorization Headers
-        Map<String, String> headers = {
-          'Authorization': 'JWT ${App.jwtToken}',
-          'Content-Type': 'application/json',
-        };
+      final jsonPayload = jsonEncode(model.toJson());
 
-        // 4. Execute the PUT Request
-        final response = await http.put(
-          url,
-          headers: headers,
-          body: jsonPayload,
-        );
+      Map<String, String> headers = {
+        'Authorization': 'JWT ${App.jwtToken}',
+        'Content-Type': 'application/json',
+      };
 
-        final data = response.body;
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: jsonPayload,
+      );
 
-        // Optional: Debug printing
-        print('--- Close Session API ---');
-        print('URL: $url');
-        print('REQUEST: $jsonPayload');
-        print('RESPONSE: $data');
-        print('-------------------------');
+      final data = response.body;
 
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          // Success: Deserialize the response
-          closeSessionResponse =
-              CloseSessionResponse.fromJson(jsonDecode(data));
-          closeSessionResponse.message = "success";
-        } else {
-          // Handle API level errors
-          closeSessionResponse.message =
-              "ApiServices.closeSession() : ${response.statusCode}\n${_extractErrorMessage(data)}";
-        }
+      print('--- Close Session API ---');
+      print('URL: $url');
+      print('REQUEST: $jsonPayload');
+      print('RESPONSE: $data');
+      print('-------------------------');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        closeSessionResponse =
+            CloseSessionResponse.fromJson(jsonDecode(data));
+        closeSessionResponse.message = "success";
       } else {
-        closeSessionResponse.message = "Please check internet connection.";
+        closeSessionResponse.message =
+            "ApiServices.closeSession(): ${response.statusCode}\n${_extractErrorMessage(data)}";
       }
-
-      return closeSessionResponse;
-    } catch (ex) {
-      print("Exception in ApiServices.closeSession(): ${ex.toString()}");
-      closeSessionResponse.message =
-          "Exception in ApiServices.closeSession() : ${ex.toString()}";
-      return closeSessionResponse;
+    } else {
+      closeSessionResponse.message = "Please check internet connection.";
     }
-  }
 
+    return closeSessionResponse;
+  } catch (ex) {
+    print("Exception: ${ex.toString()}");
+    closeSessionResponse.message =
+        "Exception: ${ex.toString()}";
+    return closeSessionResponse;
+  }
+}
+
+  // Future<OemModel> getAllOem() async {
+  //   OemModel oemModel = OemModel();
+
+  //   try {
+  //     // 1. Check Connectivity using your service
+  //     bool isConnected = await AndroidOperationsService.hasInternet();
+
+  //     if (isConnected) {
+  //       final url = Uri.parse('${AppEnvironment.baseUrl}/api/v1/oem/oem/');
+
+  //       // 2. Execute GET Request
+  //       // Note: Authorization is commented out in your C# code,
+  //       // but I've added the header structure if you need it later.
+  //       final response = await http.get(
+  //         url,
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //           // 'Authorization': 'JWT ${App.jwtToken}',
+  //         },
+  //       );
+
+  //       final data = response.body;
+
+  //       // 3. Handle Status Codes
+  //       if (response.statusCode >= 200 && response.statusCode < 300) {
+  //         // Success: Deserialize the JSON string into the model
+  //         oemModel = OemModel.fromJson(jsonDecode(data));
+  //         oemModel.message = "success";
+  //       } else {
+  //         // Handle API level errors
+  //         oemModel.message =
+  //             "ApiServices.getAllOem() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+  //       }
+  //     } else {
+  //       oemModel.message = "Please check internet connection.";
+  //     }
+
+  //     return oemModel;
+  //   } catch (ex) {
+  //     print("Exception in ApiServices.getAllOem(): ${ex.toString()}");
+  //     oemModel.message =
+  //         "Exception in ApiServices.getAllOem() : ${ex.toString()}";
+  //     return oemModel;
+  //   }
+  // }
   Future<OemModel> getAllOem() async {
-    OemModel oemModel = OemModel();
+  OemModel oemModel = OemModel();
 
-    try {
-      // 1. Check Connectivity using your service
-      bool isConnected = await AndroidOperationsService.hasInternet();
+  try {
+    print("🔵 getAllOem() called");
 
-      if (isConnected) {
-        final url = Uri.parse('${AppEnvironment.baseUrl}/api/v1/oem/oem/');
+    // 🔐 Check token
+    print("🔐 JWT Token: ${App.jwtToken}");
 
-        // 2. Execute GET Request
-        // Note: Authorization is commented out in your C# code,
-        // but I've added the header structure if you need it later.
-        final response = await http.get(
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-            // 'Authorization': 'JWT ${App.jwtToken}',
-          },
-        );
+    bool isConnected = await AndroidOperationsService.hasInternet();
 
-        final data = response.body;
-
-        // 3. Handle Status Codes
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          // Success: Deserialize the JSON string into the model
-          oemModel = OemModel.fromJson(jsonDecode(data));
-          oemModel.message = "success";
-        } else {
-          // Handle API level errors
-          oemModel.message =
-              "ApiServices.getAllOem() : ${response.statusCode}\n${_extractErrorMessage(data)}";
-        }
-      } else {
-        oemModel.message = "Please check internet connection.";
-      }
-
-      return oemModel;
-    } catch (ex) {
-      print("Exception in ApiServices.getAllOem(): ${ex.toString()}");
-      oemModel.message =
-          "Exception in ApiServices.getAllOem() : ${ex.toString()}";
+    if (!isConnected) {
+      oemModel.message = "Please check internet connection.";
+      print("❌ No internet connection");
       return oemModel;
     }
+
+    final url = Uri.parse('${AppEnvironment.baseUrl}/api/v1/oem/oem/');
+
+    print("🌐 Request URL: $url");
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+
+        // 🔥 AUTH FIX (IMPORTANT)
+        'Authorization': 'Bearer ${App.jwtToken}', // OR 'JWT ${App.jwtToken}'
+      },
+    );
+
+    print("🟡 Status Code: ${response.statusCode}");
+    print("🟡 Response Body: ${response.body}");
+
+    final data = response.body;
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      oemModel = OemModel.fromJson(jsonDecode(data));
+      oemModel.message = "success";
+
+      print("✅ OEM fetched successfully");
+    } else {
+      oemModel.message =
+          "ApiServices.getAllOem() : ${response.statusCode}\n${_extractErrorMessage(data)}";
+
+      print("❌ API Error: ${oemModel.message}");
+    }
+
+    return oemModel;
+  } catch (ex, stack) {
+    print("❌ Exception in getAllOem: $ex");
+    print("📛 Stacktrace: $stack");
+
+    oemModel.message =
+        "Exception in ApiServices.getAllOem() : ${ex.toString()}";
+
+    return oemModel;
   }
+}
 
   Future<CategoryRootModel> getAllCategories() async {
     // Initializing with optional/nullable fields allows this call
@@ -4196,84 +4315,221 @@ class AuthApiService {
     return responseModel;
   }
 
-  Future<CreateTicketResponseModel> createTicketWithoutAuthentication(
-      CreateTicketModel model) async {
-    CreateTicketResponseModel responseModel = CreateTicketResponseModel();
+  // Future<CreateTicketResponseModel> createTicketWithoutAuthentication(
+  //     CreateTicketModel model) async {
+  //   CreateTicketResponseModel responseModel = CreateTicketResponseModel();
 
-    try {
-      // 1. Check Connectivity
-      var connectivityResult = await (Connectivity().checkConnectivity());
+  //   try {
+  //     // 1. Check Connectivity
+  //     var connectivityResult = await (Connectivity().checkConnectivity());
 
-      if (connectivityResult.contains(ConnectivityResult.mobile) ||
-          connectivityResult.contains(ConnectivityResult.wifi)) {
-        // Note the updated URL from your C# code
-        final String url =
-            "${AppEnvironment.baseUrl}/api/v1/workshop/new/create/ticket/";
+  //     if (connectivityResult.contains(ConnectivityResult.mobile) ||
+  //         connectivityResult.contains(ConnectivityResult.wifi)) {
+  //       // Note the updated URL from your C# code
+  //       final String url =
+  //           "${AppEnvironment.baseUrl}/api/v1/workshop/new/create/ticket/";
 
-        // 2. Initialize Multipart Request
-        var request = http.MultipartRequest('POST', Uri.parse(url));
+  //       // 2. Initialize Multipart Request
+  //       var request = http.MultipartRequest('POST', Uri.parse(url));
 
-        // 3. Add Form Fields (StringContent equivalent)
-        // Note: mapping model.emailId to the "user" key as per your C# code
-        request.fields['user'] = model.emailId ?? "";
-        request.fields['application_type'] = model.applicationType ?? "";
-        request.fields['region'] = model.region ?? "";
-        request.fields['workshop'] = model.workshop ?? "";
-        request.fields['location'] = model.location ?? "";
-        request.fields['ticket_issue'] = model.ticketIssue ?? "";
-        request.fields['ticket_issue_choices'] =
-            model.ticketIssueChoicesUuid ?? "";
-        request.fields['invoice_no'] = model.invoiceNo ?? "";
-        request.fields['level_status'] = model.levelStatus ?? "";
-        request.fields['serial_number'] = model.serialNumber ?? "";
-        request.fields['invoice_date'] = model.invoiceDate ?? "";
-        request.fields['comment'] = model.comment ?? "";
+  //       // 3. Add Form Fields (StringContent equivalent)
+  //       // Note: mapping model.emailId to the "user" key as per your C# code
+  //       request.fields['user'] = model.emailId ?? "";
+  //       request.fields['application_type'] = model.applicationType ?? "";
+  //       request.fields['region'] = model.region ?? "";
+  //       request.fields['workshop'] = model.workshop ?? "";
+  //       request.fields['location'] = model.location ?? "";
+  //       request.fields['ticket_issue'] = model.ticketIssue ?? "";
+  //       request.fields['ticket_issue_choices'] =
+  //           model.ticketIssueChoicesUuid ?? "";
+  //       request.fields['invoice_no'] = model.invoiceNo ?? "";
+  //       request.fields['level_status'] = model.levelStatus ?? "";
+  //       request.fields['serial_number'] = model.serialNumber ?? "";
+  //       request.fields['invoice_date'] = model.invoiceDate ?? "";
+  //       request.fields['comment'] = model.comment ?? "";
 
-        // 4. Add File Attachment
-        if (model.attachment != null && model.attachment!.isNotEmpty) {
-          String fileName = model.fileName ?? "upload.jpg";
+  //       // 4. Add File Attachment
+  //       if (model.attachment != null && model.attachment!.isNotEmpty) {
+  //         String fileName = model.fileName ?? "upload.jpg";
 
-          // Using path package correctly to get extension
-          String ext = p.extension(fileName).replaceAll('.', '');
+  //         // Using path package correctly to get extension
+  //         String ext = p.extension(fileName).replaceAll('.', '');
 
-          request.files.add(
-            http.MultipartFile.fromBytes(
-              'attachment',
-              model.attachment!,
-              filename: fileName,
-              contentType:
-                  MediaType('application', ext.isEmpty ? 'octet-stream' : ext),
-            ),
-          );
-        }
+  //         request.files.add(
+  //           http.MultipartFile.fromBytes(
+  //             'attachment',
+  //             model.attachment!,
+  //             filename: fileName,
+  //             contentType:
+  //                 MediaType('application', ext.isEmpty ? 'octet-stream' : ext),
+  //           ),
+  //         );
+  //       }
 
-        // 5. Send Request
-        var streamedResponse = await request.send();
-        var response = await http.Response.fromStream(streamedResponse);
-        var data = response.body;
+  //       // 5. Send Request
+  //       var streamedResponse = await request.send();
+  //       var response = await http.Response.fromStream(streamedResponse);
+  //       var data = response.body;
 
-        // Debug Logging
-        print("Create Ticket Without Auth API\nURL: $url\nRESPONSE: $data");
+  //       // Debug Logging
+  //       print("Create Ticket Without Auth API\nURL: $url\nRESPONSE: $data");
 
-        // 6. Handle Response
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          responseModel = CreateTicketResponseModel.fromJson(jsonDecode(data));
-          responseModel.message = "success";
-        } else {
-          String errorContent = extractErrorMessage(data);
-          responseModel.message =
-              "ApiServices.createTicketWithoutAuth() : ${response.statusCode}\n$errorContent";
-        }
-      } else {
-        responseModel.message = "Please check internet connection.";
-      }
-    } catch (ex) {
-      responseModel.message =
-          "Exception in ApiServices.createTicketWithoutAuth() : ${ex.toString()}";
+  //       // 6. Handle Response
+  //       if (response.statusCode >= 200 && response.statusCode < 300) {
+  //         responseModel = CreateTicketResponseModel.fromJson(jsonDecode(data));
+  //         responseModel.message = "success";
+  //       } else {
+  //         String errorContent = extractErrorMessage(data);
+  //         responseModel.message =
+  //             "ApiServices.createTicketWithoutAuth() : ${response.statusCode}\n$errorContent";
+  //       }
+  //     } else {
+  //       responseModel.message = "Please check internet connection.";
+  //     }
+  //   } catch (ex) {
+  //     responseModel.message =
+  //         "Exception in ApiServices.createTicketWithoutAuth() : ${ex.toString()}";
+  //   }
+
+  //   return responseModel;
+  // }
+//   Future<CreateTicketResponseModel> createTicketWithoutAuthentication(
+//     CreateTicketModel model) async {
+//   CreateTicketResponseModel responseModel = CreateTicketResponseModel();
+
+//   try {
+//     var connectivityResult = await (Connectivity().checkConnectivity());
+
+//     if (connectivityResult.contains(ConnectivityResult.mobile) ||
+//         connectivityResult.contains(ConnectivityResult.wifi)) {
+      
+//       final String url = "${AppEnvironment.baseUrl}/api/v1/workshop/new/create/ticket/";
+
+//       var request = http.MultipartRequest('POST', Uri.parse(url));
+
+//       // --- 401 FIX: CLEAR HEADERS ---
+//       request.headers.remove('Authorization'); 
+//       request.headers['Accept'] = 'application/json';
+
+//       // --- FIELD MAPPING FIX ---
+//       request.fields['emailId'] = model.emailId ?? "";
+//       request.fields['application_type'] = "Windows"; // Based on your logs
+//       request.fields['region'] = model.region ?? "";
+//       request.fields['workshop'] = model.workshop ?? "";
+//       request.fields['location'] = model.location ?? "";
+//       request.fields['ticket_issue'] = model.ticketIssue ?? "";
+      
+//       // Use the exact key name from your debug logs
+//       request.fields['ticketissuechoices_uuid'] = model.ticketIssueChoicesUuid ?? "";
+      
+//       request.fields['invoice_no'] = model.invoiceNo ?? "";
+//       request.fields['level_status'] = "Level1";
+//       request.fields['serial_number'] = model.serialNumber ?? "";
+//       request.fields['invoice_date'] = model.invoiceDate ?? "";
+//       request.fields['comment'] = model.comment ?? "";
+//       request.fields['market_place'] = "e69a8d32-8411-4e25-9996-a5a28f435456";
+//       request.fields['user'] = model.user ?? "0";
+
+//       // --- MULTIPART FILE ---
+//       if (model.attachment != null && model.attachment!.isNotEmpty) {
+//         String fileName = model.fileName ?? "upload.jpg";
+        
+//         // Use lookupMimeType if possible, otherwise keep your MediaType logic
+//         request.files.add(
+//           http.MultipartFile.fromBytes(
+//             'attachment',
+//             model.attachment!,
+//             filename: fileName,
+//             contentType: MediaType('image', 'jpeg'),
+//           ),
+//         );
+//       }
+
+//       var streamedResponse = await request.send();
+//       var response = await http.Response.fromStream(streamedResponse);
+//       var data = response.body;
+
+//       print("Create Ticket (Multipart Guest)\nURL: $url\nRESPONSE: $data");
+
+//       if (response.statusCode >= 200 && response.statusCode < 300) {
+//         responseModel = CreateTicketResponseModel.fromJson(jsonDecode(data));
+//         responseModel.message = "success";
+//       } else {
+//         // This is where you will see the "bad_authorization_header" error if it fails
+//         responseModel.message = "Error: ${response.statusCode}\n$data";
+//       }
+//     } else {
+//       responseModel.message = "Please check internet connection.";
+//     }
+//   } catch (ex) {
+//     responseModel.message = "Exception: ${ex.toString()}";
+//   }
+
+//   return responseModel;
+// }
+Future<CreateTicketResponseModel> createTicketWithoutAuthentication(
+    CreateTicketModel model) async {
+  CreateTicketResponseModel responseModel = CreateTicketResponseModel();
+
+  try {
+    final url =
+        Uri.parse("${AppEnvironment.baseUrl}/api/v1/workshop/new/create/ticket/");
+
+    var request = http.MultipartRequest("POST", url);
+
+    /// ================= HEADERS =================
+    request.headers['Accept'] = 'application/json';
+
+    /// ================= FORM DATA (MATCH MAUI EXACTLY) =================
+    request.fields['user'] = model.emailId ?? "";
+    request.fields['application_type'] = model.applicationType ?? "";
+    request.fields['region'] = model.region ?? "";
+    request.fields['workshop'] = model.workshop ?? "";
+    request.fields['location'] = model.location ?? "";
+    request.fields['ticket_issue'] = model.ticketIssue ?? "";
+    request.fields['ticket_issue_choices'] =
+        model.ticketIssueChoicesUuid ?? "";
+    request.fields['invoice_no'] = model.invoiceNo ?? "";
+    request.fields['level_status'] = model.levelStatus ?? "";
+    request.fields['serial_number'] = model.serialNumber ?? "";
+    request.fields['invoice_date'] = model.invoiceDate ?? "";
+    request.fields['comment'] = model.comment ?? "";
+
+    /// ================= FILE ATTACHMENT =================
+    if (model.attachment != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'attachment',
+          model.attachment!,
+          filename: model.fileName ?? "file.jpg",
+        ),
+      );
     }
 
-    return responseModel;
+    /// ================= SEND REQUEST =================
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    print("URL: $url");
+    print("REQUEST: ${request.fields}");
+    print("RESPONSE: ${response.body}");
+
+    /// ================= RESPONSE HANDLING =================
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+
+      responseModel = CreateTicketResponseModel.fromJson(data);
+      responseModel.message = "success";
+    } else {
+      responseModel.message =
+          "Error: ${response.statusCode}\n${response.body}";
+    }
+  } catch (e) {
+    responseModel.message = "Exception: $e";
   }
+
+  return responseModel;
+}
 
   String getMimeType(String fileName) {
     final extension = p.extension(fileName).toLowerCase();

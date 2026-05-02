@@ -16,4 +16,5 @@ class SrnController extends GetxController {
       downloadedItems.add(versionId);
     }
   }
+  
 }

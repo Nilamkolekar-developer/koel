@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:autopeepal/app.dart';
 import 'package:autopeepal/models/createTickit_model.dart';
 import 'package:autopeepal/models/user_model.dart';
+import 'package:autopeepal/routes/routes_string.dart';
 import 'package:autopeepal/services/androidOperationservice.dart';
 import 'package:autopeepal/services/api_services.dart';
 import 'package:autopeepal/services/filePicker_service.dart';
@@ -15,7 +16,12 @@ class CreateTicketController extends GetxController {
   final FilePickerService filePicker = FilePickerService();
 
   /// ===================== STATE =====================
+var issueViewVisible = false.obs;
+var isBusy = false.obs;
+var relatedIssueViewVisible = false.obs;
 
+var selectedIssueName = ''.obs;
+var selectedRelatedIssueName = ''.obs;
   RxBool isAuth = false.obs;
 
   Rx<CreateTicketModel> createModel = CreateTicketModel().obs;
@@ -58,6 +64,7 @@ RxBool otherViewVisible = false.obs;
     super.onInit();
     loadUserData();
     getIssueList();
+    //getTicketList();
   }
 
   /// ===================== USER DATA =====================
@@ -158,9 +165,11 @@ RxBool otherViewVisible = false.obs;
   /// ===================== CREATE TICKET =====================
 
   Future<void> addTicket() async {
+  isBusy.value = true;
+
+  try {
     final model = createModel.value;
 
-    /// VALIDATION
     if ((model.comment ?? "").isEmpty ||
         (model.ticketIssueChoicesUuid ?? "").isEmpty) {
       Get.snackbar("Alert", "Please fill all required fields");
@@ -172,43 +181,35 @@ RxBool otherViewVisible = false.obs;
       return;
     }
 
-    try {
-      /// LOADER
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
+    Get.dialog(const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false);
 
-      /// PREPARE DATA
-      model.marketPlace = "e69a8d32-8411-4e25-9996-a5a28f435456";
-      model.user = App.userId.toString();
-      model.levelStatus = "Level1";
-      model.invoiceDate =
-          invoiceDate.value.toIso8601String().split("T").first;
+    model.marketPlace = "e69a8d32-8411-4e25-9996-a5a28f435456";
+    model.user = App.userId.toString();
+    model.levelStatus = "Level1";
+    model.invoiceDate =
+        invoiceDate.value.toIso8601String().split("T").first;
 
-      /// API CALL
-      final response = isAuth.value
-          ? await services.createTicket(model)
-          : await services.createTicketWithoutAuthentication(model);
+    final response = isAuth.value
+        ? await services.createTicketWithoutAuthentication(model)
+        : await services.createTicket(model);
 
-      Get.back(); // close loader
+    Get.back();
 
-      /// RESPONSE HANDLING
-      if (response.message == "success") {
-        await getTicketList();
-
-        Get.snackbar("Success", "Ticket Created");
-
-        Get.back(); // go back
-      } else {
-        Get.snackbar("Error", response.message ?? "Failed");
-      }
-    } catch (e) {
-      Get.back();
-      Get.snackbar("Error", e.toString());
+    if (response.message == "success") {
+      await getTicketList();
+      Get.snackbar("Success", "Ticket Created");
+      Get.offAllNamed(Routes.tickitList);
+    } else {
+      Get.snackbar("Error", response.message ?? "Failed");
     }
+  } catch (e) {
+    Get.back();
+    Get.snackbar("Error", e.toString());
+  } finally {
+    isBusy.value = false;
   }
-
+}
   /// ===================== API =====================
 
   Future<void> getIssueList() async {
@@ -239,20 +240,47 @@ RxBool otherViewVisible = false.obs;
     }
   }
 
-  Future<void> getTicketList() async {
-    try {
-      final res = await services.getTicketList(App.userId);
+ Future<void> getTicketList() async {
+  try {
+    print("👉 getTicketList() STARTED");
 
-      if (res.message == "success") {
-        await AndroidOperationsService.saveData(
-          "GetTicketList",
-          jsonEncode(res.toJson()),
-        );
-      } else {
-        Get.snackbar("Error", res.message ?? "Failed");
-      }
-    } catch (e) {
-      Get.snackbar("Error", e.toString());
+    print("👉 Calling API getTicketList with userId: ${App.userId}");
+
+    final res = await services.getTicketList(App.userId);
+
+    print("👉 API RESPONSE RECEIVED");
+    print("👉 Message: ${res.message}");
+    print("👉 Count: ${res.count}");
+    print("👉 Results length: ${res.results?.length ?? 0}");
+
+    if (res.results != null && res.results!.isNotEmpty) {
+      print("👉 First Ticket ID: ${res.results!.first.id}");
+      print("👉 First Ticket No: ${res.results!.first.ticketNo}");
+    } else {
+      print("⚠️ Results is empty");
     }
+
+    if (res.message == "success") {
+      print("✔ Saving ticket list to local storage");
+
+      await AndroidOperationsService.saveData(
+        "GetTicketList",
+        jsonEncode(res.toJson()),
+      );
+
+      print("✔ Ticket list saved successfully");
+    } else {
+      print("❌ API returned error");
+      print("👉 Error Message: ${res.message}");
+
+      Get.snackbar("Error", res.message ?? "Failed");
+    }
+  } catch (e, st) {
+    print("❌ Exception in getTicketList()");
+    print("👉 Error: $e");
+    print("STACKTRACE: $st");
+
+    Get.snackbar("Error", e.toString());
   }
+}
 }

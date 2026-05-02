@@ -1,7 +1,199 @@
-import 'package:autopeepal/common_widgets/customForm_widgets.dart';
-import 'package:autopeepal/logic/controller/myEsn/addServiceControllerForm.dart';
+// import 'package:flutter/material.dart';
+// import 'package:get/get.dart';
+// import 'package:autopeepal/logic/controller/myEsn/addServiceControllerForm.dart';
+// import 'package:autopeepal/common_widgets/customForm_widgets.dart';
+
+// class AddServiceRequestPage extends StatelessWidget {
+//   const AddServiceRequestPage({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final controller = Get.put(AddServiceRequestController());
+//     const themeColor = Color(0xFF309F93);
+
+//     return Scaffold(
+//       backgroundColor: Colors.white,
+//       appBar: AppBar(
+//         backgroundColor: Colors.white,
+//         elevation: 0,
+//         title: const Text(
+//           "Create SRN Session",
+//           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+//         ),
+//         iconTheme: const IconThemeData(color: Colors.black),
+//       ),
+//       body: Container(
+//         margin: const EdgeInsets.all(12),
+//         decoration: BoxDecoration(
+//           border: Border.all(color: themeColor, width: 1.5),
+//           borderRadius: BorderRadius.circular(6),
+//         ),
+//         child: SingleChildScrollView(
+//           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 50),
+//           child: Obx(() {
+//             return Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 /// =========================
+//                 /// SR NUMBER + SEARCH (MAUI MATCH)
+//                 /// =========================
+//                 Row(
+//                   children: [
+//                     Expanded(
+//                       child: CustomFormField(
+//                         label: "SR Number",
+//                         hint: "Enter SR Number",
+//                         onChanged: (v) => controller.srNumber.value = v,
+//                       ),
+//                     ),
+//                     const SizedBox(width: 10),
+//                     IconButton(
+//                       icon: const Icon(Icons.search),
+//                       onPressed: () => controller.searchSR(),
+//                     ),
+//                   ],
+//                 ),
+
+//                 const SizedBox(height: 20),
+
+//                 /// =========================
+//                 /// FORM VISIBILITY (IMPORTANT FIX)
+//                 /// =========================
+
+//                 CustomFormField(
+//                   label: "Customer Voice",
+//                   hint: "Enter Customer Voice",
+//                   maxLines: 2,
+//                   onChanged: (v) => controller.customerVoice.value = v,
+//                 ),
+
+//                 Row(
+//                   children: [
+//                     Expanded(
+//                       child: CustomFormField(
+//                         label: "Application Code",
+//                         hint: "Enter Application Code",
+//                         onChanged: (v) => controller.appCode.value = v,
+//                         enabled: controller.isAppCodeEnabled.value,
+//                       ),
+//                     ),
+//                     const SizedBox(width: 10),
+//                     Expanded(
+//                       child: CustomFormField(
+//                         label: "ESN",
+//                         hint: "Enter ESN",
+//                         onChanged: (v) => controller.esn.value = v,
+//                         enabled: controller.isESNEnabled.value,
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+
+//                 CustomFormField(
+//                   label: "Customer Name",
+//                   hint: "Enter Customer Name",
+//                   onChanged: (v) => controller.customerName.value = v,
+//                   enabled: controller.isCustomerNameEnabled.value,
+//                 ),
+
+//                 CustomFormField(
+//                   label: "Genset / Machine No",
+//                   hint: "Enter number",
+//                   onChanged: (v) => controller.genset.value = v,
+//                   enabled: controller.isGensetEnabled.value,
+//                 ),
+
+//                 CustomFormField(
+//                   label: "Hours",
+//                   hint: "Enter hours",
+//                   onChanged: (v) => controller.hours.value = v,
+//                   enabled: controller.isHoursEnabled.value,
+//                 ),
+
+//                 const SizedBox(height: 20),
+
+//                 /// =========================
+//                 /// CHECKBOX LIST (MAUI CollectionView)
+//                 /// =========================
+//                 Wrap(
+//                   spacing: 20,
+//                   runSpacing: 10,
+//                   children: controller.serviceList.map((item) {
+//                     return Row(
+//                       mainAxisSize: MainAxisSize.min,
+//                       children: [
+//                         Checkbox(
+//                           value: item['selected'],
+//                           onChanged: (val) => controller.checkChange(item),
+//                         ),
+//                         Text(item['name']),
+//                       ],
+//                     );
+//                   }).toList(),
+//                 ),
+
+//                 const SizedBox(height: 20),
+
+//                 // CustomFormField(
+//                 //   label: "Address",
+//                 //   hint: "Enter Address",
+//                 //   maxLines: 3,
+//                 //   onChanged: (v) => controller.address.value = v,
+//                 // ),
+//                 CustomFormField(
+//                   label: "Address",
+//                   hint: "Fetching current location...",
+//                   maxLines: 3,
+//                   controller: controller.addressController, // 👈 THIS IS KEY
+//                   onChanged: (v) => controller.address.value = v,
+//                 ),
+
+//                 const SizedBox(height: 20),
+
+//                 TextFormField(
+//                   maxLines: 5,
+//                   onChanged: (v) => controller.complaint.value = v,
+//                   decoration: InputDecoration(
+//                     hintText: "Complaint details...",
+//                     border: OutlineInputBorder(
+//                       borderSide: BorderSide(color: themeColor),
+//                     ),
+//                   ),
+//                 ),
+
+//                 const SizedBox(height: 30),
+
+//                 Center(
+//                   child: SizedBox(
+//                     width: 300,
+//                     height: 55,
+//                     child: ElevatedButton(
+//                       style: ElevatedButton.styleFrom(
+//                         backgroundColor: themeColor,
+//                       ),
+//                       onPressed: () => controller.createSrSession(),
+//                       child: const Text(
+//                         "CREATE",
+//                         style: TextStyle(
+//                             fontSize: 18,
+//                             fontWeight: FontWeight.bold,
+//                             color: Colors.white),
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//               ],
+//             );
+//           }),
+//         ),
+//       ),
+//     );
+//   }
+// }
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:autopeepal/logic/controller/myEsn/addServiceControllerForm.dart';
+import 'package:autopeepal/common_widgets/customForm_widgets.dart';
 
 class AddServiceRequestPage extends StatelessWidget {
   const AddServiceRequestPage({super.key});
@@ -9,147 +201,205 @@ class AddServiceRequestPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(AddServiceRequestController());
-    const Color themeColor = Color(0xFF309F93);
-    bool isWide = MediaQuery.of(context).size.width > 900;
+    const themeColor = Color(0xFF309F93);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-  backgroundColor: Colors.white,
-  elevation: 0,
-  centerTitle: false,
-  title: const Text(
-    "Create SRN Session",
-    style: TextStyle(
-      color: Colors.black,
-      fontWeight: FontWeight.bold,
-      fontSize: 22,
-    ),
-  ),
-  iconTheme: const IconThemeData(color: Colors.black),
-  actions: [
-    Padding(
-      padding: const EdgeInsets.only(right: 25),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 45, maxWidth: 120),
-        child: Image.asset(
-          'assets/new/ic_ikonnect.jpg',
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => const Icon(
-            Icons.broken_image,
-            color: Colors.black,
-            size: 30,
-          ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          "Create SRN Session",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
-    ),
-  ],
-),
-      body: SingleChildScrollView(
-        // Increased top padding to 50 for "little distance after appbar"
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 50),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isWide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: const CustomFormField(label: "Sr Number", hint: "Enter Sr Number")),
-                  const SizedBox(width: 30),
-                  Expanded(child: const CustomFormField(label: "ESN", hint: "Enter ESN")),
-                ],
-              )
-            else ...[
-              const CustomFormField(label: "Sr Number", hint: "Enter Sr Number"),
-              const CustomFormField(label: "ESN", hint: "Enter ESN"),
-            ],
+      body: Container(
+        margin: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: themeColor, width: 1.5),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 50),
+          child: Obx(() {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // =========================
+                // SR NUMBER + SEARCH
+                // =========================
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomFormField(
+                        label: "SR Number",
+                        hint: "Enter SR Number",
+                        controller: controller.srNumberCtrl,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // IconButton(
+                    //   icon: const Icon(Icons.search),
+                    //  // onPressed: controller.searchSR,
+                    // ),
+                  ],
+                ),
 
-            const CustomFormField(label: "Customer Name", hint: "Enter Customer Name"),
-            const CustomFormField(label: "Customer Voice", hint: "Enter Customer Voice", maxLines: 2),
+                const SizedBox(height: 20),
 
-            if (isWide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: const CustomFormField(label: "Application Code", hint: "Enter Application Code")),
-                  const SizedBox(width: 30),
-                  Expanded(child: const CustomFormField(label: "Hours", hint: "Enter hours")),
-                ],
-              )
-            else ...[
-              const CustomFormField(label: "Application Code", hint: "Enter Application Code"),
-              const CustomFormField(label: "Hours", hint: "Enter hours"),
-            ],
+                // =========================
+                // CUSTOMER VOICE
+                // =========================
+                CustomFormField(
+                  label: "Customer Voice",
+                  hint: "Enter Customer Voice",
+                  maxLines: 2,
+                  controller: controller.customerVoiceCtrl,
+                ),
 
-            const CustomFormField(
-              label: "Gense No / Machine Serial No / Chassis No",
-              hint: "Enter identification number",
-            ),
+                const SizedBox(height: 10),
 
-            const SizedBox(height: 20),
+                // =========================
+                // APP CODE + ESN
+                // =========================
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomFormField(
+                        label: "Application Code",
+                        hint: "Enter Application Code",
+                        enabled: controller.isAppCodeEnabled.value,
+                        controller: controller.appCodeCtrl,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: CustomFormField(
+                        label: "ESN",
+                        hint: "Enter ESN",
+                        enabled: controller.isESNEnabled.value,
+                        controller: controller.esnCtrl,
+                      ),
+                    ),
+                  ],
+                ),
 
-            Obx(() => Wrap(
-                  spacing: 35,
-                  runSpacing: 20,
-                  children: controller.checkStates.keys.map((String key) {
-                    return CustomCheckbox(
-                      label: key,
-                      value: controller.checkStates[key]!,
-                      onChanged: (val) => controller.toggleCheckbox(key, val!),
+                const SizedBox(height: 10),
+
+                // =========================
+                // CUSTOMER NAME
+                // =========================
+                CustomFormField(
+                  label: "Customer Name",
+                  hint: "Enter Customer Name",
+                  enabled: controller.isCustomerNameEnabled.value,
+                 controller: controller.customerNameCtrl,
+                ),
+
+                const SizedBox(height: 10),
+
+                // =========================
+                // GENSET
+                // =========================
+                CustomFormField(
+                  label: "Genset / Machine No",
+                  hint: "Enter number",
+                  enabled: controller.isGensetEnabled.value,
+                  controller: controller.gensetCtrl,
+                ),
+
+                const SizedBox(height: 10),
+
+                // =========================
+                // HOURS
+                // =========================
+                CustomFormField(
+                  label: "Hours",
+                  hint: "Enter hours",
+                  enabled: controller.isHoursEnabled.value,
+                  controller: controller.hoursCtrl,
+                ),
+
+                const SizedBox(height: 20),
+
+                // =========================
+                // SERVICE CHECKBOX LIST
+                // =========================
+                Wrap(
+                  spacing: 20,
+                  runSpacing: 10,
+                  children: controller.serviceList.map((item) {
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Checkbox(
+                          value: item['selected'] ?? false,
+                          onChanged: (_) => controller.checkChange(item),
+                          activeColor: themeColor,
+                        ),
+                        Text(item['name']),
+                      ],
                     );
                   }).toList(),
-                )),
-
-            const SizedBox(height: 40),
-            const CustomFormField(label: "Address", hint: "Enter full address", maxLines: 3),
-
-            // Complaint Details field - styled bigger
-            TextFormField(
-              maxLines: 5, // Increased height
-              style: const TextStyle(fontSize: 16),
-              decoration: InputDecoration(
-                hintText: "Complaint details or other notes...",
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: themeColor),
-                  borderRadius: BorderRadius.circular(4),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: themeColor, width: 2),
-                  borderRadius: BorderRadius.circular(4),
+
+                const SizedBox(height: 20),
+
+                // =========================
+                // ADDRESS (CONTROLLED)
+                // =========================
+                CustomFormField(
+                  label: "Address",
+                  hint: "Fetching current location...",
+                  maxLines: 3,
+                  controller: controller.addressCtrl,
                 ),
-                // Increased content padding for "little big" feel
-                contentPadding: const EdgeInsets.all(20), 
-              ),
-            ),
 
-            const SizedBox(height: 70),
+                const SizedBox(height: 20),
 
-            Center(
-              child: SizedBox(
-                width: 320,
-                height: 60, // Bigger button to match bigger fields
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: themeColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                    elevation: 0,
-                  ),
-                  onPressed: () => controller.saveRequest(),
-                  child: const Text(
-                    "CREATE",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2.0,
+                // =========================
+                // COMPLAINT
+                // =========================
+                TextFormField(
+                  maxLines: 5,
+                  controller: controller.complaintCtrl,
+                  decoration: InputDecoration(
+                    hintText: "Complaint details...",
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: themeColor),
                     ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 60),
-          ],
+
+                const SizedBox(height: 30),
+
+                // =========================
+                // CREATE BUTTON
+                // =========================
+                Center(
+                  child: SizedBox(
+                    width: 300,
+                    height: 55,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeColor,
+                      ),
+                      onPressed: controller.createSrSession,
+                      child: const Text(
+                        "CREATE",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }),
         ),
       ),
     );

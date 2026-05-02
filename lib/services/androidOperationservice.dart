@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:geocoding/geocoding.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -5,6 +6,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -119,110 +121,240 @@ class AndroidOperationsService {
     }
   }
 
+  // static Future<bool> requestPermissionAsync() async {
+  //   try {
+  //     // 1. Check current status of 'Location When In Use'
+  //     PermissionStatus status = await Permission.locationWhenInUse.status;
+
+  //     // 2. Handle Denied Status
+  //     if (status.isDenied) {
+  //       // 'shouldShowRequestRationale' in Android
+  //       if (await Permission.locationWhenInUse.shouldShowRequestRationale) {
+  //         // You can use a standard Flutter showDialog here instead of UserDialogs
+  //         print("Please grant access to Location: Need Permissions");
+  //       }
+
+  //       // Request the permission
+  //       status = await Permission.locationWhenInUse.request();
+
+  //       if (!status.isGranted) {
+  //         print("Please grant access to Location: Need Permissions");
+  //       }
+  //       return true;
+  //     }
+
+  //     // 3. Handle Granted Status
+  //     else if (status.isGranted) {
+  //       // Check if GPS/Location Services are enabled on the device
+  //       bool isLocationServiceEnabled =
+  //           await Geolocator.isLocationServiceEnabled();
+
+  //       if (!isLocationServiceEnabled) {
+  //         if (Platform.isAndroid) {
+  //           // Opens the Android Location settings page
+  //           await Geolocator.openLocationSettings();
+
+  //           // To mimic your 'while' loop, we wait until services are enabled
+  //           // WARNING: Be careful with infinite loops in production.
+  //           while (!(await Geolocator.isLocationServiceEnabled())) {
+  //             await Future.delayed(const Duration(milliseconds: 500));
+  //           }
+  //         } else if (Platform.isWindows) {
+  //           // Windows specific: Open settings or just inform user
+  //           await Geolocator.openLocationSettings();
+  //         }
+  //         return true;
+  //       }
+  //       return true;
+  //     }
+  //   } catch (e) {
+  //     // Catching any platform exceptions
+  //   }
+  //   return false;
+  // }
+
+  // static Future<String> getCurrentAddress() async {
+  //   String address = '';
+
+  //   try {
+  //     print("👉 getCurrentAddress started");
+
+  //     bool hasPermission = await requestPermissionAsync();
+  //     print("👉 Location permission status: $hasPermission");
+
+  //     if (!hasPermission) {
+  //       return "Permission denied";
+  //     }
+
+  //     await Future.delayed(const Duration(milliseconds: 200));
+
+  //     Position position = await Geolocator.getCurrentPosition(
+  //       desiredAccuracy: LocationAccuracy.high,
+  //     );
+
+  //     print("📍 GPS Position:");
+  //     print("Latitude: ${position.latitude}");
+  //     print("Longitude: ${position.longitude}");
+
+  //     // Default fallback always ready
+  //     address = "Lat: ${position.latitude}, Long: ${position.longitude}";
+
+  //     print("👉 Starting reverse geocoding");
+
+  //     try {
+  //       final placemarks = await placemarkFromCoordinates(
+  //         position.latitude,
+  //         position.longitude,
+  //       );
+
+  //       print("👉 Placemarks count: ${placemarks.length}");
+
+  //       if (placemarks.isNotEmpty) {
+  //         final p = placemarks.first;
+
+  //         String safeJoin(List<String?> values) {
+  //           return values
+  //               .where((e) => e != null && e!.trim().isNotEmpty)
+  //               .map((e) => e!)
+  //               .join(", ");
+  //         }
+
+  //         final result = safeJoin([
+  //           p.subLocality,
+  //           p.thoroughfare,
+  //           p.locality,
+  //           p.administrativeArea,
+  //           p.country,
+  //         ]);
+
+  //         if (result.isNotEmpty) {
+  //           address = result;
+  //         }
+
+  //         print("✅ Address resolved: $address");
+  //       } else {
+  //         print("⚠️ Empty placemark response");
+  //       }
+  //     } catch (geoError) {
+  //       print("❌ Geocoding failed safely: $geoError");
+  //       print("👉 Falling back to GPS only address");
+  //     }
+  //   } catch (e) {
+  //     print("❌ getCurrentAddress ERROR: $e");
+  //   }
+
+  //   print("🏁 getCurrentAddress completed");
+  //   return address;
+  // }
   static Future<bool> requestPermissionAsync() async {
     try {
-      // 1. Check current status of 'Location When In Use'
+      print("👉 Checking location permission...");
+
       PermissionStatus status = await Permission.locationWhenInUse.status;
+      print("👉 Current status: $status");
 
-      // 2. Handle Denied Status
-      if (status.isDenied) {
-        // 'shouldShowRequestRationale' in Android
-        if (await Permission.locationWhenInUse.shouldShowRequestRationale) {
-          // You can use a standard Flutter showDialog here instead of UserDialogs
-          print("Please grant access to Location: Need Permissions");
-        }
-
-        // Request the permission
+      // =========================
+      // REQUEST IF DENIED
+      // =========================
+      if (status.isDenied || status.isRestricted) {
         status = await Permission.locationWhenInUse.request();
-
-        if (!status.isGranted) {
-          print("Please grant access to Location: Need Permissions");
-        }
-        return true;
+        print("👉 After request: $status");
       }
 
-      // 3. Handle Granted Status
-      else if (status.isGranted) {
-        // Check if GPS/Location Services are enabled on the device
-        bool isLocationServiceEnabled =
-            await Geolocator.isLocationServiceEnabled();
-
-        if (!isLocationServiceEnabled) {
-          if (Platform.isAndroid) {
-            // Opens the Android Location settings page
-            await Geolocator.openLocationSettings();
-
-            // To mimic your 'while' loop, we wait until services are enabled
-            // WARNING: Be careful with infinite loops in production.
-            while (!(await Geolocator.isLocationServiceEnabled())) {
-              await Future.delayed(const Duration(milliseconds: 500));
-            }
-          } else if (Platform.isWindows) {
-            // Windows specific: Open settings or just inform user
-            await Geolocator.openLocationSettings();
-          }
-          return true;
-        }
-        return true;
+      // =========================
+      // FINAL CHECK
+      // =========================
+      if (!status.isGranted) {
+        print("❌ Location permission NOT granted");
+        return false;
       }
+
+      // =========================
+      // LOCATION SERVICES CHECK
+      // =========================
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        print("❌ Location service disabled");
+
+        await Geolocator.openLocationSettings();
+
+        // wait until enabled
+        while (!(await Geolocator.isLocationServiceEnabled())) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      }
+
+      print("✅ Permission & services OK");
+      return true;
     } catch (e) {
-      // Catching any platform exceptions
+      print("❌ Permission error: $e");
+      return false;
     }
-    return false;
   }
 
-  static Future<String> getCurrentAddress() async {
-    String address = '';
 
-    try {
-      // 1. Request Permission (Using the method we converted previously)
-      // In Flutter, we don't need 'InvokeOnMainThread' for this; it's handled by the framework.
-      bool hasPermission = await requestPermissionAsync();
+static Future<String> getCurrentAddress() async {
+  print("👉 getCurrentAddress started (OSM)");
 
-      if (hasPermission) {
-        // Small delay to ensure hardware is ready, matching your C# logic
-        await Future.delayed(const Duration(milliseconds: 200));
+  try {
+    // =========================
+    // GPS FETCH
+    // =========================
+    final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
 
-        // 2. Get current GPS Coordinates
-        Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
+    print("📍 GPS: ${position.latitude}, ${position.longitude}");
 
-        // Fallback address in case geocoding fails
-        address = "Lat: ${position.latitude}, Long: ${position.longitude}";
+    // fallback
+    String address =
+        "Lat: ${position.latitude}, Long: ${position.longitude}";
 
-        // 3. Get Placemarks (Reverse Geocoding)
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
+    // =========================
+    // OPENSTREETMAP API CALL
+    // =========================
+    final url = Uri.parse(
+      "https://nominatim.openstreetmap.org/reverse"
+      "?format=json"
+      "&lat=${position.latitude}"
+      "&lon=${position.longitude}"
+      "&zoom=18"
+      "&addressdetails=1",
+    );
 
-        if (placemarks.isNotEmpty) {
-          final p = placemarks[0];
-          List<String> parts = [];
+    print("🌍 Calling OSM API...");
 
-          // Adding address components if they are not null or empty
-          if (p.subLocality != null && p.subLocality!.isNotEmpty)
-            parts.add(p.subLocality!);
-          if (p.thoroughfare != null && p.thoroughfare!.isNotEmpty)
-            parts.add(p.thoroughfare!);
-          if (p.locality != null && p.locality!.isNotEmpty)
-            parts.add(p.locality!);
-          if (p.administrativeArea != null && p.administrativeArea!.isNotEmpty)
-            parts.add(p.administrativeArea!);
-          if (p.country != null && p.country!.isNotEmpty) parts.add(p.country!);
+    final response = await http.get(
+      url,
+      headers: {
+        "User-Agent": "FlutterApp",
+      },
+    ).timeout(const Duration(seconds: 8));
 
-          address = parts.join(', ');
-        }
+    print("🌍 Response code: ${response.statusCode}");
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      final displayName = data["display_name"];
+
+      if (displayName != null && displayName.toString().isNotEmpty) {
+        address = displayName;
+        print("✅ Address: $address");
+      } else {
+        print("⚠️ Empty address from API");
       }
-    } on LocationServiceDisabledException {
-      // Handle "FeatureNotEnabled" equivalent
-    } catch (e) {
-      // Handle general exceptions (Permissions, Timeout, etc.)
+    } else {
+      print("❌ API failed");
     }
 
     return address;
+  } catch (e) {
+    print("❌ OSM ERROR: $e");
+    return "Location unavailable";
   }
+}
 }
 
 extension ToastExtension on String {

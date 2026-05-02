@@ -337,7 +337,7 @@ class TicketsListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const MyESNDrawer(),
+      drawer:  MyESNDrawer(),
       backgroundColor: Colors.white,
 
       // ---------------- APP BAR ----------------
