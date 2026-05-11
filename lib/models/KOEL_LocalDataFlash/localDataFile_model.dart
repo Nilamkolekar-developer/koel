@@ -106,8 +106,7 @@ class ProductionSW {
 }
 
 
-class LocalVariantEcuEcu extends ChangeNotifier {
-  // Data Properties
+class LocalVariantEcuEcu {
   int? ecuId;
   String? ecuName;
   ProductionSwId? productionSwId;
@@ -115,12 +114,10 @@ class LocalVariantEcuEcu extends ChangeNotifier {
   bool? isActive;
   String? localDatasetFile;
   int? sequenceFileId;
-
-  // Private backing fields for UI properties
-  String? _imgDownload; // Represented as a path or URL string
-  Color _backgroundColor = Colors.transparent;
-  bool _isEnable = true;
-  bool _isDescVisible = false;
+  String? imgDownload;       // ImageSource → asset path string in Flutter
+  Color? backgroundColor;
+  bool? isEnable;
+  bool? isDescVisible;
 
   LocalVariantEcuEcu({
     this.ecuId,
@@ -130,47 +127,25 @@ class LocalVariantEcuEcu extends ChangeNotifier {
     this.isActive,
     this.localDatasetFile,
     this.sequenceFileId,
+    this.imgDownload,
+    this.backgroundColor,
+    this.isEnable,
+    this.isDescVisible,
   });
-
-  // --- Getters and Setters (Equivalent to OnPropertyChanged) ---
-
-  String? get imgDownload => _imgDownload;
-  set imgDownload(String? value) {
-    _imgDownload = value;
-    notifyListeners(); // This triggers the UI to rebuild
-  }
-
-  Color get backgroundColor => _backgroundColor;
-  set backgroundColor(Color value) {
-    _backgroundColor = value;
-    notifyListeners();
-  }
-
-  bool get isEnable => _isEnable;
-  set isEnable(bool value) {
-    _isEnable = value;
-    notifyListeners();
-  }
-
-  bool get isDescVisible => _isDescVisible;
-  set isDescVisible(bool value) {
-    _isDescVisible = value;
-    notifyListeners();
-  }
-
-  // --- JSON Mapping ---
 
   factory LocalVariantEcuEcu.fromJson(Map<String, dynamic> json) {
     return LocalVariantEcuEcu(
-      ecuId: json['ecu_id'],
-      ecuName: json['ecu_name'],
+      ecuId: json['ecu_id'] as int?,
+      ecuName: json['ecu_name'] as String?,
       productionSwId: json['production_sw_id'] != null
           ? ProductionSwId.fromJson(json['production_sw_id'])
           : null,
-      isLatest: json['is_latest'],
-      isActive: json['is_active'],
-      localDatasetFile: json['local_dataset_file'],
-      sequenceFileId: json['sequence_file_id'],
+      isLatest: json['is_latest'] as bool?,
+      isActive: json['is_active'] as bool?,
+      localDatasetFile: json['local_dataset_file'] as String?,
+      sequenceFileId: json['sequence_file_id'] as int?,
+      isEnable: json['is_enable'] as bool?,
+      isDescVisible: json['isDescVisible'] as bool?,
     );
   }
 
@@ -183,7 +158,8 @@ class LocalVariantEcuEcu extends ChangeNotifier {
       'is_active': isActive,
       'local_dataset_file': localDatasetFile,
       'sequence_file_id': sequenceFileId,
-      // Typically, internal UI state like backgroundColor isn't serialized
+      'is_enable': isEnable,
+      'isDescVisible': isDescVisible,
     };
   }
 }

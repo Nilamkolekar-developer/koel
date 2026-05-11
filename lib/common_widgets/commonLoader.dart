@@ -18,7 +18,7 @@ class CommonLoader extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16,vertical: 18),
           decoration: BoxDecoration(
-            color: AppColors.primaryColor,
+            color: AppColors.themeColor,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: Colors.white,

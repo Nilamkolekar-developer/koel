@@ -1,6 +1,3 @@
-import 'package:autopeepal/views/screens/myEsn/flashECUScreen.dart';
-import 'package:autopeepal/views/screens/tickit/createTickit.dart';
-
 class Routes {
   static const splashScreen = '/splashScreen';
   static const dashboardScreen = '/dashboardScreen';
@@ -23,7 +20,6 @@ class Routes {
   static const dtcScreen = '/dtcScreen';
   static const liveParameter = '/liveParameter';
   static const writeParameter = '/writeParameter';
-  static const ecuFlashing = '/ecuFlashing';
   static const routineTest = '/routineTest';
   static const allDtcDetails = '/allDtcDetails';
   static const registerScreen = '/registerScreen';
@@ -35,11 +31,20 @@ class Routes {
   static const addServiceForm = '/addServiceForm';
   static const openServiceRequest = '/openServiceRequest';
   static const closeServiceRequest = '/closeServiceRequest';
-  static const srnpage = '/srnpage';
+  static const ConnectionPage = '/ConnectionPage';
   static const flashEcuPage = '/flashEcuPage';
   static const wifiDevicePage = '/wifiDevicePage';
   static const appFeaturePage = '/appFeaturePage';
   static const tickitScreen = '/tickitScreen';
   static const tickitList = '/tickitList';
   static const localDatasetFiles = '/localDatasetFiles';
+  static const localFlashing = '/localFlashing';
+  static const writeSSIDPASS = '/writeSSIDPASS';
+  static const liveParameterSelected = '/liveParameterSelected';
+  static const flashListPage = '/flashListPage';
+  static const infoPage = '/infoPage';
+  static const treeListPage = '/treeListPage';
+  static const treeListSurveyPage = '/treeListSurveyPage';
+  static const gdImagePage = '/gdImagePage';
+  static const imageZoomingPage = '/imageZoomingPage';
 }

@@ -1050,26 +1050,35 @@ class FlashRecord {
   String? status;
   String? cvnBeforeFlash;
   String? cvnAfterFlash;
+  String? created;
 
-  FlashRecord(
-      {this.flashDuration,
-      this.status,
-      this.cvnBeforeFlash,
-      this.cvnAfterFlash});
+  FlashRecord({
+    this.flashDuration,
+    this.status,
+    this.cvnBeforeFlash,
+    this.cvnAfterFlash,
+    this.created,
+  });
 
-  factory FlashRecord.fromJson(Map<String, dynamic> json) => FlashRecord(
-        flashDuration: json['flash_duration'],
-        status: json['status'],
-        cvnBeforeFlash: json['cvn_before_flash'],
-        cvnAfterFlash: json['cvn_after_flash'],
-      );
+  factory FlashRecord.fromJson(Map<String, dynamic> json) {
+    return FlashRecord(
+      flashDuration: json['flash_duration'] as String?,
+      status: json['status'] as String?,
+      cvnBeforeFlash: json['cvn_before_flash'] as String?,
+      cvnAfterFlash: json['cvn_after_flash'] as String?,
+      created: json['created'] as String?,
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-        'flash_duration': flashDuration,
-        'status': status,
-        'cvn_before_flash': cvnBeforeFlash,
-        'cvn_after_flash': cvnAfterFlash,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'flash_duration': flashDuration,
+      'status': status,
+      'cvn_before_flash': cvnBeforeFlash,
+      'cvn_after_flash': cvnAfterFlash,
+      'created': created,
+    };
+  }
 }
 
 // ---------------- pid_live_record ----------------

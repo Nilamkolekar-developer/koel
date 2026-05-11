@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'dart:convert'; // for utf8 decoding
+// for utf8 decoding
 
 class FilePickerService {
   /// Mimics C# PickFileAsync returning (FileName, FileContent)

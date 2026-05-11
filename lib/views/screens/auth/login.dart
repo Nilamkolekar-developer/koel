@@ -1,6 +1,7 @@
 import 'package:autopeepal/common_widgets/ui_helper_widgets.dart';
 import 'package:autopeepal/logic/controller/auth/loginController.dart';
 import 'package:autopeepal/routes/routes_string.dart';
+import 'package:autopeepal/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -205,7 +206,9 @@ class LoginScreen extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () => Get.offAllNamed(Routes.registerScreen),
+              onPressed: () {
+                controller.forgotPasswordTapped(context);
+              },
               style: TextButton.styleFrom(
                 foregroundColor: themeColor,
                 padding: EdgeInsets.zero,
@@ -334,13 +337,12 @@ class LoginScreen extends StatelessWidget {
                 ),
 
                 // --- Content Section ---
-                // --- Content Section ---
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(24, 30, 24, 10),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 10),
                   child: Column(
                     children: [
                       Text(
-                        "Please reach out to KOEL HO team in case of any assistance with the app",
+                        "Please reach out to KOEL HO team in case of any assistance with the app.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
@@ -348,15 +350,14 @@ class LoginScreen extends StatelessWidget {
                           height: 1.4,
                         ),
                       ),
-                      SizedBox(height: 12), // Space for the new line
+                      SizedBox(height: 12),
                       Text(
-                        "(F24134C472C50AAD)",
+                        "(${controller.userRequestModel.macId.toString().replaceAll(RegExp(r'[\[\]true,\s{}]'), '').trim()})",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(
-                              0xFF309F93), // Using your teal color for the code
+                          color: AppColors.themeColor,
                           letterSpacing: 1.2,
                         ),
                       ),

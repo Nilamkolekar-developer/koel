@@ -5,19 +5,19 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 class ExcelServiceWindows {
-  
   /// Creates the Excel file and directory structure on Windows
   Future<List<String>> generateExcel(String fileName) async {
     List<String> returnValue = ["", ""];
     try {
       // 1. Get the Windows 'Documents' directory
       final Directory? docDir = await getApplicationDocumentsDirectory();
-      if (docDir == null) throw Exception("Could not access Documents directory");
+      if (docDir == null)
+        throw Exception("Could not access Documents directory");
 
       // 2. Create the "AnalyzeData" sub-folder
       final String filePathDir = p.join(docDir.path, "AnalyzeData");
       final Directory directory = Directory(filePathDir);
-      
+
       if (!await directory.exists()) {
         await directory.create(recursive: true);
       }
@@ -46,8 +46,8 @@ class ExcelServiceWindows {
     }
   }
 
-  /// Inserts data into the Windows-based Excel file
-  Future<void> insertDataIntoSheet(String filePath, String sheetName, ExcelStructure data) async {
+  Future<void> insertDataIntoSheet(
+      String filePath, String sheetName, ExcelStructure data) async {
     try {
       var bytes = File(filePath).readAsBytesSync();
       var excel = Excel.decodeBytes(bytes);
@@ -57,7 +57,7 @@ class ExcelServiceWindows {
       for (int i = 0; i < data.headers.length; i++) {
         sheetObject.updateCell(
           CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0),
-          data.headers[i] as CellValue?,
+          TextCellValue(data.headers[i]), // ✅ wrap in TextCellValue
         );
       }
 
@@ -67,7 +67,7 @@ class ExcelServiceWindows {
         for (int c = 0; c < rowData.length; c++) {
           sheetObject.updateCell(
             CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r + 1),
-            rowData[c] as CellValue?,
+            TextCellValue(rowData[c]), // ✅ wrap in TextCellValue
           );
         }
       }
@@ -80,6 +80,7 @@ class ExcelServiceWindows {
       print("Windows Excel Write Error: $e");
     }
   }
+
   Future<void> deleteDataIntoSheet(String fileName, String sheetName) async {
     try {
       // 1. Read the existing file bytes
@@ -96,7 +97,7 @@ class ExcelServiceWindows {
       if (excel.tables.containsKey(sheetName)) {
         // Option A: Clear all cell content in the sheet
         var sheet = excel.tables[sheetName]!;
-        
+
         // We iterate through max rows and columns and set them to null/empty
         for (int row = 0; row < sheet.maxRows; row++) {
           for (int col = 0; col < sheet.maxRows; col++) {
@@ -106,7 +107,7 @@ class ExcelServiceWindows {
             );
           }
         }
-        
+
         /* 
         Option B: If you want to completely reset the sheet 
         (similar to removing SheetData in OpenXML):
@@ -120,7 +121,7 @@ class ExcelServiceWindows {
       if (fileBytes != null) {
         await file.writeAsBytes(fileBytes);
       }
-      
+
       print("Data in '$sheetName' deleted successfully.");
     } catch (e) {
       // Replicates the lack of an explicit catch-return in your C# snippet

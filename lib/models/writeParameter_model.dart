@@ -35,15 +35,28 @@ class WriteParameterModel {
 // ---------------- WriteParameter_Status ----------------
 class WriteParameterStatus {
   String? status;
+  List<int>? dataArray;
 
-  WriteParameterStatus({this.status});
+  WriteParameterStatus({
+    this.status,
+    this.dataArray,
+  });
 
-  factory WriteParameterStatus.fromJson(Map<String, dynamic> json) =>
-      WriteParameterStatus(
-        status: json['Status'],
-      );
+  // Optional: fromJson
+  factory WriteParameterStatus.fromJson(Map<String, dynamic> json) {
+    return WriteParameterStatus(
+      status: json['Status'],
+      dataArray: json['DataArray'] != null
+          ? List<int>.from(json['DataArray'])
+          : null,
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-        'Status': status,
-      };
+  // Optional: toJson
+  Map<String, dynamic> toJson() {
+    return {
+      'Status': status,
+      'DataArray': dataArray,
+    };
+  }
 }

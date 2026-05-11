@@ -8,7 +8,6 @@ extension ComparableExtension<T extends Comparable<T>> on T {
 
 // Usage:
 void main() {
-  int myNum = 25;
   //print(myNum.clampCustom(1, 10)); // Output: 10
   
   String myLetter = 'z';

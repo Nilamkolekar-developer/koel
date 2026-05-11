@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'package:autopeepal/models/actuatorTest_model.dart';
 import 'package:autopeepal/models/freezeFrame_model.dart';
 import 'package:autopeepal/models/gd_model.dart';
 import 'package:autopeepal/models/iorTest_model.dart';
 import 'package:autopeepal/models/jobCard_model.dart';
 import 'package:autopeepal/models/partReplacementAnalyze_model.dart';
+import 'package:autopeepal/models/pidLiveRecord_model.dart';
 import 'package:autopeepal/models/reportLocationModel.dart';
 import 'package:autopeepal/models/uploadEngineHr_model.dart';
 
@@ -90,7 +90,7 @@ class PidRecordingOfflineAnalyze {
   String? type;
   int? srnId;
   String? srNumber;
-  List<PidLiveRecord>? liveRecord;
+  List<PIDLiveRecord>? liveRecord;
 
   PidRecordingOfflineAnalyze({
     this.type,
@@ -107,7 +107,7 @@ class PidRecordingOfflineAnalyze {
       srNumber: json['sr_number'],
       liveRecord: json['LiveRecord'] != null
           ? (json['LiveRecord'] as List)
-              .map((i) => PidLiveRecord.fromJson(i))
+              .map((i) => PIDLiveRecord.fromJson(i))
               .toList()
           : null,
     );
@@ -124,44 +124,108 @@ class PidRecordingOfflineAnalyze {
   }
 }
 
+// class PidSnapshotOfflineAnalyze {
+//   String? type;
+//   int? srnId;
+//   String? srNumber;
+//   List<SnapshotRecord>? snapshot;
+//   String? datetime;
+
+//   PidSnapshotOfflineAnalyze({
+//     this.type,
+//     this.srnId,
+//     this.srNumber,
+//     this.snapshot,
+//     this.datetime,
+//   });
+
+//   // JSON -> Object
+//   factory PidSnapshotOfflineAnalyze.fromJson(Map<String, dynamic> json) {
+//     return PidSnapshotOfflineAnalyze(
+//       type: json['type'],
+//       srnId: json['srn_id'],
+//       srNumber: json['sr_number'],
+//       snapshot: json['Snapshot'] != null
+//           ? (json['Snapshot'] as List)
+//               .map((i) => SnapshotRecord.fromJson(i))
+//               .toList()
+//           : null,
+//       datetime: json['datetime'],
+//     );
+//   }
+
+//   // Object -> JSON
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'type': type,
+//       'srn_id': srnId,
+//       'sr_number': srNumber,
+//       'Snapshot': snapshot?.map((v) => v.toJson()).toList(),
+//       'datetime': datetime,
+//     };
+//   }
+// }
+
 class PidSnapshotOfflineAnalyze {
   String? type;
   int? srnId;
   String? srNumber;
-  List<SnapshotRecord>? snapshot;
+  List<SnapshotRecord>? snapshotData;
   String? datetime;
 
   PidSnapshotOfflineAnalyze({
     this.type,
     this.srnId,
     this.srNumber,
-    this.snapshot,
+    this.snapshotData,
     this.datetime,
   });
 
-  // JSON -> Object
   factory PidSnapshotOfflineAnalyze.fromJson(Map<String, dynamic> json) {
     return PidSnapshotOfflineAnalyze(
       type: json['type'],
       srnId: json['srn_id'],
       srNumber: json['sr_number'],
-      snapshot: json['Snapshot'] != null
+      snapshotData: json['Snapshot'] != null
           ? (json['Snapshot'] as List)
-              .map((i) => SnapshotRecord.fromJson(i))
+              .map((e) => SnapshotRecord.fromJson(e))
               .toList()
           : null,
       datetime: json['datetime'],
     );
   }
 
-  // Object -> JSON
   Map<String, dynamic> toJson() {
     return {
       'type': type,
       'srn_id': srnId,
       'sr_number': srNumber,
-      'Snapshot': snapshot?.map((v) => v.toJson()).toList(),
+      'Snapshot': snapshotData?.map((e) => e.toJson()).toList(),
       'datetime': datetime,
+    };
+  }
+}
+
+class SnapshotRecord {
+  String? code;
+  String? value;
+
+  SnapshotRecord({
+    this.code,
+    this.value,
+  });
+
+  factory SnapshotRecord.fromJson(Map<String, dynamic> json) {
+    return SnapshotRecord(
+      code: json['code'],
+      value: json['value'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'value': value,
     };
   }
 }

@@ -1,5 +1,9 @@
 import 'dart:convert';
 import 'package:autopeepal/app.dart';
+import 'package:autopeepal/models/all_models.dart';
+import 'package:autopeepal/models/liveParameter_model.dart';
+import 'package:autopeepal/models/staticData.dart';
+import 'package:autopeepal/routes/routes_string.dart';
 import 'package:autopeepal/services/androidOperationservice.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -84,31 +88,119 @@ class ServiceRequestListController extends GetxController {
   Future<void> selectSession(SessionModel item) async {
     if (!isOpenSr) return;
 
-    Get.dialog(const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false);
-
     try {
-      await Future.delayed(const Duration(milliseconds: 100));
+      showLoading("Loading...");
+
+      await Future.delayed(const Duration(milliseconds: 10));
 
       final jsonListData =
           await AndroidOperationsService.getData("MODEL_LocalList");
+
       if (jsonListData == null || jsonListData.isEmpty) {
-        Get.back();
-        Get.snackbar("Error", "Model not found in local DB");
+        await alertMessage("Model not found in local database.", "Failed");
         return;
       }
 
-      //   final models = jsonDecode(jsonListData);
+      final AllModelsModel models =
+          AllModelsModel.fromJson(jsonDecode(jsonListData));
 
-      // 👉 You should map your model logic here (same as MAUI)
-      // Skipped deep ECU mapping due to size complexity
+      if (models.results == null || models.results!.isEmpty) {
+        await alertMessage("Model not found in local database.", "Failed");
+        return;
+      }
 
-      Get.back();
+      StaticData.ecuInfo = [];
 
-      //Get.toNamed(Routes.connectionPage, arguments: item);
+      final model = models.results!.firstWhere(
+        (x) => x.id == item.variant?.modelId,
+        orElse: () => models.results!.first,
+      );
+
+      App.modelId = item.variant?.modelId ?? 0;
+
+      final subModel = model.subModels?.firstWhere(
+        (x) => x.id == item.variant?.sModelId,
+        orElse: () => model.subModels!.first,
+      );
+
+      if (subModel == null) {
+        await alertMessage("Sub model not found.", "Failed");
+        return;
+      }
+
+      App.subModelId = item.variant?.sModelId ?? 0;
+
+      for (var variantEcu in item.variant?.subModel?.ecus ?? []) {
+        // final ecu = subModel.ecus?.firstWhere(
+        //   (x) => x.id == variantEcu.id,
+        //   orElse: () => variantEcu,
+        // );
+        final ecu = subModel.ecus?.firstWhereOrNull(
+  (x) => x.id == variantEcu.id,
+);
+
+        if (ecu != null) {
+          final pidLocal = await AndroidOperationsService.getData(
+            "PidDataset_${ecu.pidDatasets?.first.id}",
+          );
+
+          final pidDataset = (pidLocal != null && pidLocal.isNotEmpty)
+              ? Root.fromJson(jsonDecode(pidLocal))
+              : null;
+
+          StaticData.ecuInfo.add(
+            EcuDataSet(
+              readDtcIndex: ecu.readDtcFnIndex?.value,
+              pidDatasetId: ecu.pidDatasets?.first.id,
+              mappedPidDatasetId: ecu.mappedPidDatasets?.isNotEmpty == true
+                  ? ecu.mappedPidDatasets!.first.id
+                  : null,
+              clearDtcIndex: ecu.clearDtcFnIndex?.value,
+              dtcDatasetId: ecu.datasets?.first.id,
+              ecuName: ecu.name,
+              seedKeyIndex: ecu.seedkeyalgoFnIndex?.value,
+              writePidIndex: ecu.writeDataFnIndex?.value,
+              txHeader: ecu.txHeader,
+              rxHeader: ecu.rxHeader,
+              protocol: ecu.protocol,
+              ecuId: ecu.id,
+              iorTestFnIndex: ecu.iorTestFnIndex?.value,
+              versionDataset: ecu.versionDataset,
+              swVerPid: ecu.swVerPid,
+              pidList: pidDataset?.results?.firstOrNull?.codes,
+            ),
+          );
+        }
+      }
+
+      hideLoading();
+
+      Get.toNamed(Routes.ConnectionPage, arguments: {"session": item, "model": model});
     } catch (e) {
+      hideLoading();
+      await alertMessage(e.toString(), "Failed");
+    }
+  }
+
+  Future<void> alertMessage(String message, [String title = "Alert"]) async {
+    Get.defaultDialog(
+      title: title,
+      middleText: message,
+      textConfirm: "OK",
+      onConfirm: () => Get.back(),
+    );
+  }
+
+  void showLoading([String msg = "Loading..."]) {
+    Get.dialog(
+      const Center(child: CircularProgressIndicator()),
+      barrierDismissible: false,
+    );
+  }
+
+  void hideLoading() {
+    if (Get.isDialogOpen ?? false) {
       Get.back();
-      Get.snackbar("Error", e.toString());
     }
   }
 
@@ -146,38 +238,34 @@ class ServiceRequestListController extends GetxController {
         CloseSessionRequest(status: "closed"),
       );
 
-      if (result != null) {
-        if (result.message == "success") {
-          if (result.status == "closed") {
-            Get.back(); // close loader
+      if (result.message == "success") {
+        if (result.status == "closed") {
+          Get.back(); // close loader
 
-            Get.snackbar("Success", "Session closed.");
+          Get.snackbar("Success", "Session closed.");
 
-            // refresh list
-            final res = await services.getAllSessionList(App.userId);
+          // refresh list
+          final res = await services.getAllSessionList(App.userId);
 
-            if (res.message == "success") {
-              if (res.results.isNotEmpty) {
-                final jsonData = jsonEncode(res.toJson());
-                await AndroidOperationsService.saveData(
-                    "Session_LocalList", jsonData);
+          if (res.message == "success") {
+            if (res.results.isNotEmpty) {
+              final jsonData = jsonEncode(res.toJson());
+              await AndroidOperationsService.saveData(
+                  "Session_LocalList", jsonData);
 
-                sessionList.value = res.results;
-                staticSessionList.value = res.results;
-              } else {
-                Get.snackbar("Failed", "Session list not found.");
-              }
+              sessionList.value = res.results;
+              staticSessionList.value = res.results;
             } else {
-              Get.snackbar("Error", res.message ?? "Unknown error");
+              Get.snackbar("Failed", "Session list not found.");
             }
           } else {
-            Get.snackbar("Error", "Session not closed");
+            Get.snackbar("Error", res.message ?? "Unknown error");
           }
         } else {
-          Get.snackbar("Error", result.message ?? "Unknown error");
+          Get.snackbar("Error", "Session not closed");
         }
       } else {
-        Get.snackbar("Error", "Session not closed");
+        Get.snackbar("Error", result.message ?? "Unknown error");
       }
 
       Get.back(); // close loader if still open
@@ -202,10 +290,10 @@ class ServiceRequestListController extends GetxController {
 
       final variantModel = jsonDecode(jsonData);
 
-      // Get.toNamed(Routes.createSessionPage, arguments: {
-      //   "sessionList": sessionList,
-      //   "variant": variantModel,
-      // });
+      Get.toNamed(Routes.addServiceForm, arguments: {
+        "sessionList": sessionList,
+        "variant": variantModel,
+      });
     } catch (e) {
       debugPrint("Create session error: $e");
     }

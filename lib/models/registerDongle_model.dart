@@ -1,8 +1,8 @@
 class RegisterDongleModel {
   dynamic macId; // C# had `object`, so using dynamic
-  String deviceType;
+  String? deviceType;
 
-  RegisterDongleModel({required this.macId, required this.deviceType});
+  RegisterDongleModel({this.macId, this.deviceType});
 
   Map<String, dynamic> toJson() => {
         'mac_id': macId,
@@ -78,4 +78,3 @@ class ErrorRes {
         'is_active': isActive,
       };
 }
-

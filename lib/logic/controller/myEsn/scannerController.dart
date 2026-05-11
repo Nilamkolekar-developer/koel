@@ -57,7 +57,7 @@ class ScannerController extends GetxController {
   // REPLACE COMMAND
   // ======================
   Future<void> replace() async {
-    if ((variantPart!.slNumber ?? '').isEmpty) {
+    if ((variantPart.slNumber ?? '').isEmpty) {
       Get.defaultDialog(
         title: "Error",
         middleText: "Please enter Sl Number.",
@@ -67,7 +67,7 @@ class ScannerController extends GetxController {
       return;
     }
 
-    if ((variantPart!.comment ?? '').isEmpty) {
+    if ((variantPart.comment ?? '').isEmpty) {
       Get.defaultDialog(
         title: "Error",
         middleText: "Please enter comment.",
@@ -159,6 +159,6 @@ class ScannerController extends GetxController {
   // SL NUMBER UPDATE
   // ======================
   Future<void> validateVariantPartCode(String vin) async {
-    variantPart!.slNumber = vin;
+    variantPart.slNumber = vin;
   }
 }

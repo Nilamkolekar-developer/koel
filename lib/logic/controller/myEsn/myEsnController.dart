@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:autopeepal/app.dart';
 import 'package:autopeepal/models/creteSessionReq_model.dart';
 import 'package:autopeepal/models/jobCard_model.dart';
-import 'package:autopeepal/models/offlineAnalyze_model.dart';
+import 'package:autopeepal/models/offlineAnalyze_model.dart' hide SnapshotRecord;
+import 'package:autopeepal/models/pidLiveRecord_model.dart';
 import 'package:autopeepal/models/sessionList_model.dart';
 import 'package:autopeepal/models/variant_model.dart';
 import 'package:autopeepal/routes/routes_string.dart';
@@ -18,68 +18,15 @@ class Myesncontroller extends GetxController {
   var checkboxValues = <String, bool>{}.obs;
   final AuthApiService services = AuthApiService();
   RxList<SessionModel> sessionList = <SessionModel>[].obs;
-
+  RxList<SessionModel> staticSessionList = <SessionModel>[].obs;
   RxBool isOpenMode = false.obs;
   @override
   void onInit() {
     super.onInit();
-    //getSessionList(); // 🔥 load once
   }
 
-  // =========================
-  // OPEN SRN
-  // =========================
- Future<void> openSrnCommand() async {
-  print("👉 Open SRN CLICKED");
-
-  try {
-    Get.dialog(
-      const Center(child: CircularProgressIndicator()),
-      barrierDismissible: false,
-    );
-
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    // 🔥 ADD THIS
-    print("👉 SESSION LIST BEFORE LOAD: ${sessionList.length}");
-    await getSessionList();
-    print("👉 SESSION LIST AFTER LOAD: ${sessionList.length}");
-
-    if (sessionList.isEmpty) {
-      print("⚠️ Empty session list after API/local load");
-      if (Get.isDialogOpen == true) Get.back();
-      Get.snackbar("Alert", "SRN list not found.");
-      return;
-    }
-
-    final list = sessionList.where((x) => x.status == "open").toList();
-
-    print("👉 OPEN COUNT: ${list.length}");
-
-    if (Get.isDialogOpen == true) Get.back();
-
-    Get.toNamed(
-      Routes.openServiceRequest,
-      arguments: {
-        "sessionList": list,
-        "isOpenMode": true,
-      },
-    );
-
-    print("✅ OPEN SRN NAVIGATION DONE");
-  } catch (e) {
-    print("❌ OPEN ERROR: $e");
-
-    if (Get.isDialogOpen == true) Get.back();
-    Get.snackbar("Failed", e.toString());
-  }
-}
-
-  // =========================
-  // CLOSE SRN
-  // =========================
-  Future<void> closeSrnCommand() async {
-    print("👉 Close SRN CLICKED");
+  Future<void> openSrnCommand() async {
+    print("👉 OPEN SRN CLICKED");
 
     try {
       Get.dialog(
@@ -87,127 +34,135 @@ class Myesncontroller extends GetxController {
         barrierDismissible: false,
       );
 
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      if (sessionList.isEmpty) {
-        print("⚠️ Empty session list");
-        if (Get.isDialogOpen == true) Get.back();
-        Get.snackbar("Alert", "SRN list not found.");
-        return;
-      }
-
-      final closedList =
-          sessionList.where((x) => x.status == "closed").toList();
-
-      print("👉 CLOSED COUNT: ${closedList.length}");
-
-      if (closedList.isEmpty) {
-        if (Get.isDialogOpen == true) Get.back();
-        Get.snackbar("Alert", "SRN list not found.");
-        return;
-      }
+      await getSessionList();
 
       if (Get.isDialogOpen == true) Get.back();
 
-      // ✅ FIXED NAVIGATION (named route style)
+      final openList = sessionList.where((x) {
+        return (x.status ?? "").toLowerCase().trim() == "open";
+      }).toList();
+
+      print("👉 OPEN COUNT: ${openList.length}");
+
+      if (openList.isEmpty) {
+        Get.snackbar("Alert", "No OPEN SRN found.");
+        return;
+      }
+
       Get.toNamed(
         Routes.openServiceRequest,
         arguments: {
-          "sessionList": closedList,
-          "isOpenMode": false,
+          "sessionList": openList,
+          "isOpenMode": true,
         },
       );
 
-      print("✅ CLOSED SRN NAVIGATION DONE");
+      print("✅ OPEN SRN NAVIGATION DONE");
     } catch (e) {
-      print("❌ CLOSE ERROR: $e");
-
       if (Get.isDialogOpen == true) Get.back();
       Get.snackbar("Failed", e.toString());
     }
   }
 
-  Future<void> createNewSessionCommand() async {
-    print("👉 Create New Session CLICKED");
-
+  Future<void> closeSrnCommand() async {
     try {
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
+      // 1. Show Loader (Equivalent to UserDialogs.Instance.Loading)
+      showLoading("Loading...");
 
+      // 2. Fetch/Load the data first (Crucial step missing previously)
+      await getSessionList();
+
+      print("👉 Total sessions loaded: ${sessionList.length}");
+
+      if (sessionList.isNotEmpty) {
+        // 3. Filter for "closed" sessions
+        // .trim() and .toLowerCase() help prevent mismatches from API strings
+        final list = sessionList
+            .where((x) => (x.status ?? "").toLowerCase().trim() == "closed")
+            .toList();
+
+        if (list.isNotEmpty) {
+          // 4. Hide Loader before navigating
+          hideLoading();
+
+          // 5. Navigate (Equivalent to page.Navigation.PushAsync)
+          Get.toNamed(
+            Routes.openServiceRequest,
+            arguments: {
+              "sessionList": list,
+              "isOpenMode": false, // This is your 'bool isOpenSr' parameter
+            },
+          );
+        } else {
+          hideLoading();
+          Get.snackbar("Alert", "SRN list not found.");
+        }
+      } else {
+        hideLoading();
+        Get.snackbar("Alert", "SRN list not found.");
+      }
+    } catch (e) {
+      hideLoading();
+      Get.snackbar("Failed", e.toString());
+    }
+  }
+
+  Future<void> createNewSessionCommand() async {
+    try {
+      Get.dialog(const Center(child: CircularProgressIndicator()),
+          barrierDismissible: false);
       await Future.delayed(const Duration(milliseconds: 10));
 
-      // =========================
-      // GET LOCAL VARIANT DATA
-      // =========================
-      final jsonListData =
+      String? jsonListData =
           await AndroidOperationsService.getData("Variant_LocalList");
 
-      print("👉 RAW VARIANT DATA: $jsonListData");
-
       if (jsonListData == null || jsonListData.isEmpty) {
-        if (Get.isDialogOpen == true) Get.back();
-
-        Get.snackbar(
-          "Error",
-          "Variants not found.\nPlease update local data.",
-        );
-
+        Get.back();
+        Get.defaultDialog(
+            title: "Error", middleText: "Local data is empty. Please sync.");
         return;
       }
 
-      // =========================
-      // PARSE JSON
-      // =========================
-      final variantModel = VariantModel.fromJson(
-        jsonDecode(jsonListData),
-      );
+      VariantModel variantModel =
+          VariantModel.fromJson(jsonDecode(jsonListData));
 
-      print("👉 VARIANT STATUS: ${variantModel.message}");
+      if (variantModel.message == "success" && variantModel.results != null) {
+        List<Variant> validVariantList = [];
 
-      List<Variant> validVariantList = [];
-
-      if (variantModel.message == "success") {
-        if (variantModel.results == null || variantModel.results!.isEmpty) {
-          if (Get.isDialogOpen == true) Get.back();
-
-          Get.snackbar(
-            "Error",
-            "Variants not found.\nPlease update local data.",
-          );
-          return;
-        }
-
-        // =========================
-        // FILTER VARIANTS
-        // =========================
         for (var variant in variantModel.results!) {
-          bool matchWorkshopGroup =
-              variant.workshopGroup?.any((x) => x.id == App.workshopGrp) ??
-                  false;
+          // --- DEBUG LOGS ---
+          // print("Checking Variant: ${variant.id}, WorkshopID: ${App.workshop}, GroupID: ${App.workshopGrp}");
 
-          bool matchWorkshop =
-              variant.workshop?.any((x) => x.id == App.workshop) ?? false;
+          // Type-safe comparison: convert both to String
+          bool matchesGroup = variant.workshopGroup
+                  ?.any((x) => x.id.toString() == App.workshopGrp.toString()) ??
+              false;
 
-          if (matchWorkshopGroup || matchWorkshop) {
+          bool matchesWorkshop = variant.workshop
+                  ?.any((x) => x.id.toString() == App.workshop.toString()) ??
+              false;
+
+          if (matchesGroup || matchesWorkshop) {
             validVariantList.add(variant);
           }
         }
 
-        print("👉 VALID VARIANTS: ${validVariantList.length}");
+        // Check if the filtered list is empty
+        if (validVariantList.isEmpty) {
+          Get.back();
+          Get.defaultDialog(
+              title: "Alert",
+              middleText:
+                  "No variants match your Workshop (${App.workshop}) or Group (${App.workshopGrp}).");
+          return;
+        }
 
+        // Important: Assign the filtered list back to the model
         variantModel.results = validVariantList;
       }
 
-      // =========================
-      // CLOSE LOADER
-      // =========================
-      if (Get.isDialogOpen == true) Get.back();
+      Get.back(); // Close Loader
 
-      // =========================
-      // NAVIGATION
-      // =========================
       Get.toNamed(
         Routes.addServiceForm,
         arguments: {
@@ -215,13 +170,9 @@ class Myesncontroller extends GetxController {
           "variantModel": variantModel,
         },
       );
-
-      print("✅ NAVIGATION DONE");
     } catch (e) {
-      print("❌ CREATE SESSION ERROR: $e");
-
-      if (Get.isDialogOpen == true) Get.back();
-
+      if (Get.isDialogOpen!) Get.back();
+      print("❌ ERROR: $e");
       Get.snackbar("Error", e.toString());
     }
   }
@@ -233,67 +184,41 @@ class Myesncontroller extends GetxController {
       SessionListModel? res;
 
       bool isOnline = await _checkInternet();
-
       print("👉 INTERNET STATUS: $isOnline");
 
-      // =========================
-      // ONLINE MODE
-      // =========================
       if (isOnline) {
         res = await services.getAllSessionList(App.userId);
 
-        print("👉 API RESPONSE MESSAGE: ${res.message}");
-
         if (res.message != "success") {
-          print("⚠️ API FAILED, TRY LOCAL STORAGE");
-
-          final jsonListData =
+          final localData =
               await AndroidOperationsService.getData("Session_LocalList");
 
-          if (jsonListData == null || jsonListData.isEmpty) {
-            print("❌ NO LOCAL SESSION DATA");
-            return;
-          }
+          if (localData == null || localData.isEmpty) return;
 
-          res = SessionListModel.fromJson(jsonDecode(jsonListData));
+          res = SessionListModel.fromJson(jsonDecode(localData));
         }
-      }
-
-      // =========================
-      // OFFLINE MODE
-      // =========================
-      else {
-        print("📴 OFFLINE MODE - loading local data");
-
-        final jsonListData =
+      } else {
+        final localData =
             await AndroidOperationsService.getData("Session_LocalList");
 
-        if (jsonListData == null || jsonListData.isEmpty) {
-          print("❌ NO LOCAL SESSION DATA");
-          return;
-        }
+        if (localData == null || localData.isEmpty) return;
 
-        res = SessionListModel.fromJson(jsonDecode(jsonListData));
+        res = SessionListModel.fromJson(jsonDecode(localData));
       }
 
-      // =========================
-      // PROCESS RESULT
-      // =========================
       if (res.message == "success") {
-        if (res.results != null && res.results!.isNotEmpty) {
-          sessionList.assignAll(
-            res.results!..sort((a, b) => b.id!.compareTo(a.id!)),
-          );
+        final sorted = [...res.results];
+        sorted.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
 
-          print("✅ SESSION LIST LOADED: ${sessionList.length}");
-        } else {
-          Get.snackbar("Failed", "Session list not found.");
-        }
+        sessionList.assignAll(sorted);
+        staticSessionList.assignAll(sorted); // ✅ IMPORTANT FIX
+
+        print("✅ SESSION LIST LOADED: ${sessionList.length}");
       } else {
         Get.snackbar("Error", res.message ?? "Unknown error");
       }
     } catch (e) {
-      print("❌ GET SESSION LIST ERROR: $e");
+      print("❌ GET SESSION ERROR: $e");
       Get.snackbar("Error", e.toString());
     }
   }
@@ -405,7 +330,7 @@ class Myesncontroller extends GetxController {
                 var res = await services
                     .getSessionBySrNumber(item.srNumber as GetSrModel);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -435,7 +360,7 @@ class Myesncontroller extends GetxController {
                 var res = await services
                     .getSessionBySrNumber(item.srNumber as GetSrModel);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -463,7 +388,7 @@ class Myesncontroller extends GetxController {
                 var res = await services
                     .getSessionBySrNumber(item.srNumber as GetSrModel);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -491,12 +416,12 @@ class Myesncontroller extends GetxController {
                 var res = await services
                     .getSessionBySrNumber(item.srNumber as GetSrModel);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
               await services.pidSnapshotRecord(
-                item.snapshot!,
+                item.snapshotData!.cast<SnapshotRecord>(),
                 App.jwtToken,
                 sessionId,
                 item.datetime!,
@@ -523,7 +448,7 @@ class Myesncontroller extends GetxController {
                 var res = await services
                     .getSessionBySrNumber(item.srNumber as GetSrModel);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -553,7 +478,7 @@ class Myesncontroller extends GetxController {
                 var res = await services
                     .getSessionBySrNumber(item.srNumber as GetSrModel);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -577,7 +502,7 @@ class Myesncontroller extends GetxController {
               if (sessionId == 0) {
                 var res =
                     await services.getSessionBySrNumber(item["sr_number"]);
-                sessionId = res.results!.first.id ?? 0;
+                sessionId = res.results.first.id ?? 0;
               }
 
               await services.partReplacementEcu(item["data"], sessionId);
@@ -597,7 +522,7 @@ class Myesncontroller extends GetxController {
                 var res =
                     await services.getSessionBySrNumber(item["sr_number"]);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -618,7 +543,7 @@ class Myesncontroller extends GetxController {
                 var res =
                     await services.getSessionBySrNumber(item["sr_number"]);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -639,7 +564,7 @@ class Myesncontroller extends GetxController {
                 var res =
                     await services.getSessionBySrNumber(item["sr_number"]);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -660,7 +585,7 @@ class Myesncontroller extends GetxController {
                 var res =
                     await services.getSessionBySrNumber(item["sr_number"]);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -685,7 +610,7 @@ class Myesncontroller extends GetxController {
                 var res =
                     await services.getSessionBySrNumber(item["sr_number"]);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -707,7 +632,7 @@ class Myesncontroller extends GetxController {
                 var res =
                     await services.getSessionBySrNumber(item["sr_number"]);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -741,7 +666,7 @@ class Myesncontroller extends GetxController {
                 var res =
                     await services.getSessionBySrNumber(item["sr_number"]);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 
@@ -764,7 +689,7 @@ class Myesncontroller extends GetxController {
                 var res =
                     await services.getSessionBySrNumber(item["sr_number"]);
                 if (res.message == "success") {
-                  sessionId = res.results!.first.id ?? 0;
+                  sessionId = res.results.first.id ?? 0;
                 }
               }
 

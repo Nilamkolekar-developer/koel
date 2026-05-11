@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:ap_dongle_diagnostic_core/model/freezeFrameModel.dart';
 import 'package:autopeepal/models/all_models.dart';
 import 'package:autopeepal/models/dtc_model.dart';
 import 'package:autopeepal/models/envSet_model.dart';
-import 'package:autopeepal/models/freezeFrame_model.dart';
+import 'package:autopeepal/models/freezeFrame_model.dart'
+    hide FreezeFrameResponseModel;
 import 'package:autopeepal/models/liveParameter_model.dart';
 import 'package:autopeepal/models/mappedPidRoot_model.dart' hide PidCode;
 import 'package:autopeepal/models/unlockecu_model.dart';
 import 'package:autopeepal/models/writeParameter_model.dart';
-
 
 abstract class IConnectionUSB {
   Future<void> cancel();
@@ -33,7 +34,7 @@ abstract class IConnectionUSB {
 
   Future<void> disconnectUSB();
 
-  Future<ReadDtcResponseModel> readDtc(String indexKey);
+  Future<ReadDtcResponseModel?> readDtc(String indexKey);
 
   Future<String> clearDtc(
     String indexKey,
@@ -50,7 +51,7 @@ abstract class IConnectionUSB {
   Future<String> unlockEcu(ResultUnlock unlockData);
 
   /// Combined overloads for ReadPid
-  Future<List<ReadPidResponseModel>> readPid({
+  Future<List<ReadPidResponseModel?>> readPid({
     List<PidCode>? pidList,
     String? pidByAddrSeq,
     List<ReadParameterPid>? parameterPidList,
@@ -95,7 +96,7 @@ abstract class IConnectionUSB {
   );
 
   /// Combined overloads for SetTestRoutineCommand
-  Future<TestRoutineResponseModel> setTestRoutineCommand({
+  Future<TestRoutineResponseModel?> setTestRoutineCommand({
     required String seedKey,
     required String writeParaIndex,
     required String startCommand,
@@ -110,7 +111,7 @@ abstract class IConnectionUSB {
     int? timeBase,
   });
 
-  Future<TestRoutineResponseModel> continueIorTest(
+  Future<TestRoutineResponseModel?> continueIorTest(
     String seedKey,
     String writeParaIndex,
     String startCommand,
@@ -130,13 +131,16 @@ abstract class IConnectionUSB {
 
   Future<void> stopTesterPresent();
 
-  Future<TestRoutineResponseModel> requestIorTest(String requestCommand);
+  Future<TestRoutineResponseModel?> requestIorTest(String requestCommand);
 
-  Future<TestRoutineResponseModel> stopIorTest(String stopCommand);
+// Change this in IConnectionUSB.dart
+Future<TestRoutineResponseModel?> stopIorTest(String stopCommand);
+// Add the '?' to the return type to match your implementation
+Future<List<IvnReadDtcResponseModel>?> ivnReadDtc(List<String> frameIDC);
 
-  Future<List<IvnReadDtcResponseModel>> ivnReadDtc(List<String> frameIDC);
-
-  Future<List<ReadPidResponseModel>> ivnReadPid(List<IvnSelectedPid> ivnPidList);
+// Added '?' to make it nullable to match the implementation logic
+// Update your interface to this:
+Future<List<ReadPidPresponseModel>?> ivnReadPid(List<IvnSelectedPid> ivnPidList);
 
   Future<double> flashingData();
 
