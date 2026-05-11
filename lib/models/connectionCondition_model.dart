@@ -2,26 +2,26 @@ class ConnectionCondition {
   bool? isLengthFFF;
   bool? isChannels;
   String? channelId;
-  bool? isCH340;
+  bool? isObdCharger;
 
   ConnectionCondition({
     this.isLengthFFF,
     this.isChannels,
     this.channelId,
-    this.isCH340,
+    this.isObdCharger,
   });
 
   factory ConnectionCondition.fromJson(Map<String, dynamic> json) => ConnectionCondition(
         isLengthFFF: json['IsLengthFFF'],
         isChannels: json['IsChannels'],
         channelId: json['ChannelId'],
-        isCH340: json['IsCH340'],
+        isObdCharger: json['IsObdCharger'],
       );
 
   Map<String, dynamic> toJson() => {
         'IsLengthFFF': isLengthFFF,
         'IsChannels': isChannels,
         'ChannelId': channelId,
-        'IsCH340': isCH340,
+        'IsObdCharger': isObdCharger,
       };
 }

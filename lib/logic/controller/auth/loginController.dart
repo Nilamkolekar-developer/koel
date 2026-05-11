@@ -1,22 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:autopeepal/AppPreferences/app_areferences.dart';
 import 'package:autopeepal/app.dart';
+import 'package:autopeepal/common_widgets/commonLoader.dart';
+import 'package:autopeepal/common_widgets/popup.dart';
 import 'package:autopeepal/models/KOEL_LocalDataFlash/koel_LocalDataFlash_model.dart';
 import 'package:autopeepal/models/all_models.dart';
 import 'package:autopeepal/models/pidByAddrReqLocal_model.dart';
 import 'package:autopeepal/models/staticData.dart';
-
 import 'package:autopeepal/models/user_model.dart';
 import 'package:autopeepal/routes/routes_string.dart';
 import 'package:autopeepal/services/androidOperationservice.dart';
-
 import 'package:autopeepal/services/api_services.dart';
 import 'package:autopeepal/utils/get_device_unique_id.dart';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -24,6 +21,7 @@ import 'package:intl/intl.dart';
 class LoginController extends GetxController {
   final GetDeviceUniqueId getDeviceUniqueId = GetDeviceUniqueId();
   final AuthApiService services = AuthApiService();
+
   @override
   void onInit() {
     super.onInit();
@@ -37,7 +35,7 @@ class LoginController extends GetxController {
   var passwordController = TextEditingController().obs;
   UserModel userRequestModel = UserModel();
   UserResModel userResModel = UserResModel();
-  var rememberCheck = false.obs;
+
   var isPassword = true.obs;
   var isHelpPopupVisible = false.obs;
 
@@ -45,35 +43,41 @@ class LoginController extends GetxController {
   var appVersion = "".obs;
   //Rx<UserResModel> user = UserResModel().obs;
 
-  // ---------------- INIT ----------------
-
   Future<void> initData() async {
-  String isRemember = await AppPreferences.getString("is_remember") ?? "";
+    try {
+      String isRemember =
+          await AndroidOperationsService.getData("is_remember") ?? "false";
 
-  if (isRemember == "true") {
-    String username =
-        await AppPreferences.getString("user_email") ?? "";
-    String password =
-        await AppPreferences.getString("user_password") ?? "";
+      if (isRemember == "true") {
+        String email =
+            await AndroidOperationsService.getData("user_email") ?? "";
+        String pass =
+            await AndroidOperationsService.getData("user_password") ?? "";
 
-    userRequestModel.username = username;
-    userRequestModel.password = password;
+        // Set UI fields
+        usernameController.value.text = email;
+        passwordController.value.text = pass;
 
-    usernameController.value.text = username;   // ✅ ADD THIS
-    passwordController.value.text = password;   // ✅ ADD THIS
+        // Set model
+        userRequestModel.username = email;
+        userRequestModel.password = pass;
 
-    rememberCheck.value = true;
-  } else {
-    usernameController.value.clear();
-    passwordController.value.clear();
-    rememberCheck.value = false;
+        isRememberMeChecked.value = true;
+
+        print("✅ Loaded Email: $email");
+        print("✅ Loaded Password: $pass");
+      } else {
+        isRememberMeChecked.value = false;
+      }
+
+      // Device info
+      var device = await AndroidOperationsService.getDeviceUniqueId();
+      userRequestModel.macId = device.toString();
+      userRequestModel.deviceType = "windows";
+    } catch (e) {
+      print("❌ initData error: $e");
+    }
   }
-
-  var device = await AndroidOperationsService.getDeviceUniqueId();
-  userRequestModel.macId = device.toString();
-  userRequestModel.deviceType = "android";
-}
-
   // ---------------- LOGIN ----------------
 
   Future<void> loginMethod() async {
@@ -107,7 +111,7 @@ class LoginController extends GetxController {
           : await loginOffline();
 
       if (isLogin) {
-        if (rememberCheck.value) {
+        if (isRememberMeChecked.value) {
           await AndroidOperationsService.saveData(
               "user_email", userResModel.user ?? '');
           await AndroidOperationsService.saveData("user_password", password);
@@ -127,13 +131,17 @@ class LoginController extends GetxController {
     }
   }
 
+  bool isLoaderOpen = false;
   // ---------------- API METHODS ----------------
   Future<bool> loginOnline() async {
     try {
       print("👉 loginOnline() STARTED");
+      final loader = CommonLoader(message: "Loggin...");
 
-      showLoading("Logging In...");
-      await Future.delayed(const Duration(milliseconds: 50));
+      Get.dialog(loader, barrierDismissible: false);
+      isLoaderOpen = true;
+
+      await Future.delayed(const Duration(milliseconds: 200));
 
       print("👉 Calling API login");
 
@@ -261,10 +269,14 @@ class LoginController extends GetxController {
 
       if (needsUpdate) {
         print("👉 Updating LOCAL DATA required");
+        final loader = CommonLoader(
+            message:
+                "Updating Local Data...\nPlease Wait...\nThis may take few minutes");
 
-        showLoading(
-          "Updating Local Data...\nPlease Wait...\nThis may take few minutes",
-        );
+        Get.dialog(loader, barrierDismissible: false);
+        isLoaderOpen = true;
+
+        await Future.delayed(const Duration(milliseconds: 200));
 
         result = await updateModelToLocal(totalDays > 7);
       } else {
@@ -600,7 +612,7 @@ class LoginController extends GetxController {
       }
 
       // Safety check
-      if (result == null || result.results == null) {
+      if (result.results == null) {
         print("❌ result or result.results is NULL");
         return false;
       }
@@ -920,8 +932,6 @@ class LoginController extends GetxController {
           await AndroidOperationsService.getData("KOEL_LocalList");
 
       if (localData == null || localData.isEmpty || isExpired) {
-        bool returnValue = false;
-
         List<RootKoelocalModel> rootKoelocalModelList = [];
 
         if (models.isNotEmpty) {
@@ -1007,8 +1017,6 @@ class LoginController extends GetxController {
           await AndroidOperationsService.getData("PidByAddrSeqData");
 
       if (localData == null || localData.isEmpty || isExpired) {
-        bool returnValue = false;
-
         List<PidByAddrSeqLocalModel> pidByAddrSeqList = [];
 
         if (models.isNotEmpty) {
@@ -1168,47 +1176,6 @@ class LoginController extends GetxController {
       return false;
     }
   }
-
-  // Future<bool> updateEnvSetListToLocal(List<ModelResult>? models) async {
-  //   try {
-  //     bool returnValue = false;
-
-  //     if (models != null && models.isNotEmpty) {
-  //       for (var model in models) {
-  //         if (model.subModels != null && model.subModels!.isNotEmpty) {
-  //           for (var subModel in model.subModels!) {
-  //             if (subModel.ecus != null && subModel.ecus!.isNotEmpty) {
-  //               for (var ecu in subModel.ecus!) {
-  //                 var resp = await services.getApiResponse(
-  //                   "/api/v1/datasets/get-environment-snapshot/?ecu=${ecu.id}",
-  //                 );
-
-  //                 if (resp.success == true) {
-  //                   await AndroidOperationsService.saveData(
-  //                     "EnvSet_LocalList_forEcu_${ecu.id}",
-  //                     resp.data ?? '',
-  //                   );
-
-  //                   return true; // same behavior as C#
-  //                 } else {
-  //                   alertMessage(
-  //                     "Error in Saving Environment Snapshot: ${resp.data}",
-  //                   );
-  //                   return false;
-  //                 }
-  //               }
-  //             }
-  //           }
-  //         }
-  //       }
-  //     }
-
-  //     return returnValue;
-  //   } catch (e) {
-  //     alertMessage("Exception in UpdateEnvSetListToLocal(): $e");
-  //     return false;
-  //   }
-  // }
 
   Future<bool> updateEnvSetListToLocal(List<ModelResult>? models) async {
     try {
@@ -1381,13 +1348,14 @@ class LoginController extends GetxController {
   }
 
   Future<void> alertMessage(String message, [String? title]) async {
-    Get.defaultDialog(
-      title: title ?? "Alert",
-      middleText: message,
-      textConfirm: "OK",
-      onConfirm: () {
-        Get.back();
-      },
+    await Get.dialog(
+      CustomPopup(
+        title: title ?? "Alert",
+        message: message,
+        confirmText: "OK",
+        onConfirm: () => Get.back(),
+      ),
+      barrierDismissible: false,
     );
   }
 
@@ -1418,5 +1386,25 @@ class LoginController extends GetxController {
     if (Get.isDialogOpen ?? false) {
       Get.back();
     }
+  }
+
+  final String _supportMessage =
+      "Please reach out to KOEL HO team in case of any assistance with the app.";
+  void forgotPasswordTapped(BuildContext context) => showDialog(
+        context: context,
+        builder: (_) => CustomPopup1(
+          title: "Forgot Password",
+          message: _supportMessage,
+        ),
+      );
+
+  void needHelpClicked(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => CustomPopup(
+        title: "Need Help",
+        message: "$_supportMessage\n\n(${userRequestModel.macId})",
+      ),
+    );
   }
 }

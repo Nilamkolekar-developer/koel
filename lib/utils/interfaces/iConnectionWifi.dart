@@ -16,11 +16,11 @@ import 'package:autopeepal/models/writeParameter_model.dart';
 abstract class IConnectionWifi {
   Future<bool> updateFirmware(String command);
 
-  Future<List<BluetoothDevicesModel>> getDeviceList();
+  Future<List<BluetoothDevicesModel>?> getDeviceList();
 
-  Future<List<BluetoothDevicesModel>> enableHotspots();
+  Future<List<BluetoothDevicesModel>?> enableHotspots();
 
-  void connectDongle();
+   connectDongle();
 
   Future<String> sendFotaCommand(String command);
 
@@ -44,48 +44,51 @@ abstract class IConnectionWifi {
 
   Future<String> getFirmware1();
 
-  Future<String> getIpAddress();
+  Future<String?> getIpAddress();
 
-  Future<String> writeSSIDPassword(String routerSSID, String routerPassword);
+  Future<String?> writeSSIDPassword(String routerSSID, String routerPassword);
 
-  Future<List<ReadPidResponseModel>> setRoutineValue(
-    List<PidCode> pidList,
-    String pidByAddrSeq,
-    Uint8List actualResponse,
-  );
-
-  Future<List<MappedPidResponseModel>> readMappedPid(
+Future<List<ReadPidResponseModel>?> setRoutineValue(
+  List<PidCode> pidList,
+  String pidByAddrSeq,
+  Uint8List actualResponse,
+);
+  Future<List<MappedPidResponseModel>?> readMappedPid(
     List<MappedPiCodeVariable> mappedPiCodeVariable,
   );
 
   // DTC Methods
-  Future<ReadDtcResponseModel> readDtc(String indexKey);
+  Future<ReadDtcResponseModel?> readDtc(String indexKey);
 
-  Future<String> clearDtc(
+  Future<String?> clearDtc(
     String indexKey,
     String seedKeyIndex,
     String writePidIndex,
   );
 
-  Future<FreezeFrameResponseModel> getFreezeFrame(
-    String dtcCode,
-    FreezeFrameResult frameServerResult,
-    List<EnvironmentSnapshotCode> envSnapshotCodes,
-  );
+Future<FreezeFrameResponseModel> getFreezeFrame(
+  String dtcCode,
+  FreezeFrameResult frameServerResult,
+  List<EnvironmentSnapshotCode> envSnapshotCodes,
+);
 
   Future<String> setData(String commands);
 
   Future<String> unlockEcu(ResultUnlock unlockData);
 
-  // PID Methods (Combined overloads)
-  Future<List<ReadPidResponseModel>> readPid({
+  // Future<List<ReadPidPresponseModel>?> readPid({
+  //   required List<PidCode> pidList,
+  //   required String pidByAddrSeq,
+  //   List<ReadParameterPid>? parameterPidList,  // optional
+  // });
+   Future<List<ReadPidResponseModel?>> readPid({
     List<PidCode>? pidList,
     String? pidByAddrSeq,
     List<ReadParameterPid>? parameterPidList,
   });
 
   // Write PID
-  Future<List<WriteParameterStatus>> writePid(
+  Future<List<WriteParameterStatus>?> writePid(
     String writePidIndex,
     List<WriteParameterPid> pidList,
     String pidByAddrSeq,
@@ -99,30 +102,31 @@ abstract class IConnectionWifi {
     List<EcuMapFile> ecuMapFile,
   );
 
-  Future<WriteParameterStatus> writeAtuatorTest(
+  Future<WriteParameterStatus?> writeAtuatorTest(
     String writeParaIndex,
     String seedKeyIndex,
     List<Uint8List> command,
     bool isStartTest,
   );
 
-  Future<TestRoutineResponseModel> setTestRoutineCommand(
+  Future<TestRoutineResponseModel?> setTestRoutineCommand(
     String seedKey,
     String writeParaIndex,
     String startCommand,
   );
 
-  Future<TestRoutineResponseModel> requestIorTest(String requestCommand);
+  Future<TestRoutineResponseModel?> requestIorTest(String requestCommand);
 
-  Future<TestRoutineResponseModel> stopIorTest(String stopCommand);
+  Future<TestRoutineResponseModel?> stopIorTest(String stopCommand);
 
   Future<void> startTesterPresent();
 
   Future<void> stopTesterPresent();
 
-  Future<List<IvnReadDtcResponseModel>> ivnReadDtc(List<String> frameIDC);
+  Future<List<IvnReadDtcResponseModel>?> ivnReadDtc(List<String> frameIDC);
 
-  Future<List<ReadPidResponseModel>> ivnReadPid(List<IvnSelectedPid> ivnPidList);
+  // IConnectionWifi
+Future<List<ReadPidResponseModel>?> ivnReadPid(List<IvnSelectedPid> ivnPidList);
 
   Future<double> flashingData();
 

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:autopeepal/app.dart';
 import 'package:autopeepal/models/all_models.dart';
-import 'package:autopeepal/models/jobCard_model.dart';
+import 'package:autopeepal/models/liveParameter_model.dart';
 import 'package:autopeepal/models/sessionList_model.dart';
 import 'package:autopeepal/models/staticData.dart';
 import 'package:autopeepal/models/variant_model.dart';
@@ -96,46 +96,49 @@ class SessionListController extends GetxController {
 
       App.subModelId = item.variant!.sModelId!;
 
-//       for (var variantEcu in item.variant?.subModel?.ecus ?? []) {
-//   final ecu = subModel.ecus
-//       ?.firstWhereOrNull((x) => x.id == variantEcu.id);
+      for (var variantEcu in item.variant?.subModel?.ecus ?? []) {
+        final ecu =
+            subModel.ecus?.firstWhereOrNull((x) => x.id == variantEcu.id);
 
-//   if (ecu != null) {
-//     final pidLocal = await AndroidOperationsService
-//         .getData("PidDataset_${ecu.pidDatasets?[0].id}");
+        if (ecu != null) {
+          final pidLocal = await AndroidOperationsService.getData(
+              "PidDataset_${ecu.pidDatasets?[0].id}");
 
-//     final pidDataset = (pidLocal != null && pidLocal.isNotEmpty)
-//         ? Root.fromJson(json.decode(pidLocal))
-//         : Root();
+          final pidDataset = (pidLocal != null && pidLocal.isNotEmpty)
+              ? Root.fromJson(json.decode(pidLocal))
+              : Root();
 
-//     StaticData.ecuInfo.add(EcuDataSet(
-//       readDtcIndex: ecu.read_dtc_fn_index.value,
-//       pidDatasetId: ecu.pidDatasets?[0].id,
-//       mappedPidDatasetId:
-//           ecu.mapped_pid_datasets?.firstOrNull?.id,
-//       clearDtcIndex: ecu.clear_dtc_fn_index.value,
-//       dtcDatasetId: ecu.datasets?[0].id,
-//       ecuName: ecu.name,
-//       seedKeyIndex: ecu.seedkeyalgo_fn_index.value,
-//       writePidIndex: ecu.write_data_fn_index.value,
-//       txHeader: ecu.tx_header,
-//       rxHeader: ecu.rx_header,
-//       protocol: ecu.protocol,
-//       ecuId: ecu.id,
-//       iorTestFnIndex: ecu.ior_test_fn_index.value,
-//       versionDataset: ecu.version_dataset,
-//       swVerPid: ecu.sw_ver_pid,
-//       pidList: pidDataset.results?.firstOrNull?.codes,
-//     ));
-//   }
-// }
+          StaticData.ecuInfo.add(EcuDataSet(
+            readDtcIndex: ecu.read_dtc_fn_index.value,
+            pidDatasetId: ecu.pidDatasets?[0].id,
+            mappedPidDatasetId: ecu.mappedPidDatasets?.firstOrNull?.id,
+            clearDtcIndex: ecu.clearDtcFnIndex!.value,
+            dtcDatasetId: ecu.datasets?[0].id,
+            ecuName: ecu.name,
+            seedKeyIndex: ecu.seedkeyalgoFnIndex!.value,
+            writePidIndex: ecu.writeDataFnIndex!.value,
+            txHeader: ecu.txHeader,
+            rxHeader: ecu.rxHeader,
+            protocol: ecu.protocol,
+            ecuId: ecu.id,
+            iorTestFnIndex: ecu.iorTestFnIndex!.value,
+            versionDataset: ecu.versionDataset,
+            swVerPid: ecu.swVerPid,
+            pidList: pidDataset.results?.firstOrNull?.codes,
+          ));
+        }
+      }
 
       Get.back(); // close loader
 
-      // Get.toNamed(
-      //   Routes.connection,
-      //   arguments: {"item": item, "model": model},
-      // );
+      // Inside SessionListController.selectSession
+      Get.toNamed(
+        Routes.ConnectionPage,
+        arguments: {
+          "session": item, // Changed from "item" to "session"
+          "model": model,
+        },
+      );
     } catch (e) {
       Get.back();
       Get.snackbar("Error", e.toString());
@@ -176,9 +179,9 @@ class SessionListController extends GetxController {
 
         final res = await services.getAllSessionList(App.userId);
 
-        if (res.message == "success" && res.results!.isNotEmpty) {
+        if (res.message == "success" && res.results.isNotEmpty) {
           sessionList
-              .assignAll(res.results!..sort((a, b) => b.id!.compareTo(a.id!)));
+              .assignAll(res.results..sort((a, b) => b.id!.compareTo(a.id!)));
 
           staticSessionList.assignAll(sessionList);
 
@@ -257,9 +260,9 @@ class SessionListController extends GetxController {
 
       final res = SessionListModel.fromJson(json.decode(jsonData));
 
-      if (res.message == "success" && res.results!.isNotEmpty) {
+      if (res.message == "success" && res.results.isNotEmpty) {
         sessionList
-            .assignAll(res.results!..sort((a, b) => b.id!.compareTo(a.id!)));
+            .assignAll(res.results..sort((a, b) => b.id!.compareTo(a.id!)));
 
         staticSessionList.assignAll(sessionList);
       } else {

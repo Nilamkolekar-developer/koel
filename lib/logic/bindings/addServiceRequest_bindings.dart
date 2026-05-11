@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 class AddServiceRequestBindings extends Bindings {
   @override
   void dependencies() {
-    Get.put(AddServiceRequestController());
-    Get.lazyPut(()=>ScannerController());
+    Get.put(CreateSessionController());
+    Get.put(ScannerController());
   }
 }

@@ -220,7 +220,7 @@ class App {
   static bool isInternet = false;
 
   static WifiConnector? wifiConnectorService;
-  static UsbConnectorService? usbConnectorService;
+  static UsbWindows? usbConnectorService;
 
   static String masterLoginUserBY = '';
   static String masterLoginUserRoleBY = '';
@@ -309,7 +309,8 @@ class App {
     runZonedGuarded(
       () async {
         WidgetsFlutterBinding.ensureInitialized();
-
+App.wifiConnectorService = WifiConnector();
+        App.usbConnectorService = UsbWindows();
         // ── GetStorage (Windows safe) ─────────────────────────
         // try {
         //   if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {

@@ -274,17 +274,62 @@ class DtcResults {
 }
 
 
+// class DtcCode {
+//   int? id;
+//   String? code;
+//   String? description;
+//   bool? isActive;
+//   String? statusActivation;
+//   String? lampActivation;
+
+//   // Add these fields for UI color mapping
+//   Color? statusActivationColor;
+//   Color? lampActivationColor;
+
+//   DtcCode({
+//     this.id,
+//     this.code,
+//     this.description,
+//     this.isActive,
+//     this.statusActivation,
+//     this.lampActivation,
+//     this.statusActivationColor,
+//     this.lampActivationColor,
+//   });
+
+//   factory DtcCode.fromJson(Map<String, dynamic> json) => DtcCode(
+//         id: json['id'],
+//         code: json['code'],
+//         description: json['description'],
+//         isActive: json['is_active'],
+//         statusActivation: json['status_activation'],
+//         lampActivation: json['lamp_activation'],
+//       );
+
+//   Map<String, dynamic> toJson() => {
+//         'id': id,
+//         'code': code,
+//         'description': description,
+//         'is_active': isActive,
+//         'status_activation': statusActivation,
+//         'lamp_activation': lampActivation,
+//         // colors are for runtime/UI, usually not serialized
+//       };
+// }
+
+
 class DtcCode {
   int? id;
   String? code;
   String? description;
-  bool? isActive;
+  String? isActive;
   String? statusActivation;
   String? lampActivation;
-
-  // Add these fields for UI color mapping
-  Color? statusActivationColor;
+  Color? statusColor;
   Color? lampActivationColor;
+  bool? isGd;
+  bool? isFreezeFrame;
+  int? environmentSnapshot;
 
   DtcCode({
     this.id,
@@ -293,8 +338,11 @@ class DtcCode {
     this.isActive,
     this.statusActivation,
     this.lampActivation,
-    this.statusActivationColor,
+    this.statusColor,
     this.lampActivationColor,
+    this.isGd,
+    this.isFreezeFrame,
+    this.environmentSnapshot,
   });
 
   factory DtcCode.fromJson(Map<String, dynamic> json) => DtcCode(
@@ -304,6 +352,15 @@ class DtcCode {
         isActive: json['is_active'],
         statusActivation: json['status_activation'],
         lampActivation: json['lamp_activation'],
+        statusColor: json['status_activation_color'] != null
+            ? Color(json['status_activation_color'])
+            : null,
+        lampActivationColor: json['lamp_activation_color'] != null
+            ? Color(json['lamp_activation_color'])
+            : null,
+        isGd: json['is_gd'],
+        isFreezeFrame: json['is_freeze_frame'],
+        environmentSnapshot: json['environment_snapshot'],
       );
 
   Map<String, dynamic> toJson() => {
@@ -313,7 +370,11 @@ class DtcCode {
         'is_active': isActive,
         'status_activation': statusActivation,
         'lamp_activation': lampActivation,
-        // colors are for runtime/UI, usually not serialized
+        'status_activation_color': statusColor?.value,
+        'lamp_activation_color': lampActivationColor?.value,
+        'is_gd': isGd,
+        'is_freeze_frame': isFreezeFrame,
+        'environment_snapshot': environmentSnapshot,
       };
 }
 

@@ -222,23 +222,34 @@ class FreezeFrame {
       };
 }
 
+// freeze_frame_analyze_result.dart
+
 class FreezeFrameAnalyzeResult {
-  String? code;
-  String? pidName;
-  String? value;
+  String code;
+  String pidName;
+  String value;
+  String created;
 
-  FreezeFrameAnalyzeResult({this.code, this.pidName, this.value});
+  FreezeFrameAnalyzeResult({
+    this.code    = '',
+    this.pidName = '',
+    this.value   = '',
+    this.created = '',
+  });
 
-  factory FreezeFrameAnalyzeResult.fromJson(Map<String, dynamic> json) => FreezeFrameAnalyzeResult(
-        code: json['code'],
-        pidName: json['pid_name'],
-        value: json['value'],
+  factory FreezeFrameAnalyzeResult.fromJson(Map<String, dynamic> json) =>
+      FreezeFrameAnalyzeResult(
+        code:    json['code']     ?? '',
+        pidName: json['pid_name'] ?? '',
+        value:   json['value']    ?? '',
+        created: json['created']  ?? '',
       );
 
   Map<String, dynamic> toJson() => {
-        'code': code,
+        'code':     code,
         'pid_name': pidName,
-        'value': value,
+        'value':    value,
+        'created':  created,
       };
 }
 
